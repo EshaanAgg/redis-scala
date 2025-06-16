@@ -51,7 +51,7 @@ object ServerState:
     args.foreach((k, v) =>
       k match
         case "dir"       => dir = v
-        case "dbfile"    => dbFile = v
+        case "dbfilename"    => dbFile = v
         case "port"      => port = v.toInt
         case "replicaof" =>
           // Expecting format: "host:port"

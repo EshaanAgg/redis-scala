@@ -12,7 +12,7 @@ object ArgsParser:
   private type OptionMap = Map[String, String]
 
   private val recognizedOptions =
-    Set("--dir", "--dbfile", "--port", "--replicaof")
+    Set("--dir", "--dbfilename", "--port", "--replicaof")
 
   def parse(args: Seq[String]): OptionMap =
     @tailrec
