@@ -14,6 +14,7 @@ import java.net.Socket
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import redis.handler.commands.InfoHandler
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -30,6 +31,7 @@ object Handler:
           case "get"    => GetHandler
           case "config" => ConfigHandler
           case "keys"   => KeysHandler
+          case "info" => InfoHandler
           case _        => UnknownHandler
 
         val resp = h.handle(cmd)

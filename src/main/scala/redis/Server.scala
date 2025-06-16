@@ -9,17 +9,17 @@ import scala.concurrent.Future
 import handler.Handler
 
 object ArgsParser:
-  private type OptionMap = Map[String, Any]
+  private type OptionMap = Map[String, String]
+
+  private val recognizedOptions = Set("--dir", "--dbfile", "--port", "--replicaof")
 
   def parse(args: Seq[String]): OptionMap =
     @tailrec
     def getNextOption(map: OptionMap, args: List[String]): OptionMap =
       args match
         case Nil => map
-        case "--dir" :: value :: next =>
-          getNextOption(map ++ Map("dir" -> value), next)
-        case "--dbfilename" :: value :: next =>
-          getNextOption(map ++ Map("dbfile" -> value), next)
+        case key :: value :: next if recognizedOptions.contains(key) =>
+          getNextOption(map ++ Map(key.stripPrefix("--") -> value), next)
         case args => throw Exception(s"Malformed arguments: $args")
 
     getNextOption(Map(), args.toList)
@@ -30,8 +30,8 @@ object ArgsParser:
   )
 
   val serverSocket = new ServerSocket()
-  serverSocket.bind(new InetSocketAddress("localhost", 6379))
-  println("Server started at port: 6379")
+  serverSocket.bind(new InetSocketAddress("localhost", ServerState.port))
+  println(s"Server started at port: ${ServerState.port}")
 
   while (true) {
     val clientSocket = serverSocket.accept()

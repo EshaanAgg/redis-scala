@@ -5,6 +5,7 @@ import redis.formats.RESPData
 
 import java.time.Instant
 import scala.collection.concurrent.TrieMap
+import java.util.UUID
 
 case class StoreVal(data: RESPData, exp: Option[Instant]):
   def isDefined: Boolean =
@@ -12,22 +13,58 @@ case class StoreVal(data: RESPData, exp: Option[Instant]):
   
   def isEmpty: Boolean = !isDefined
 
+sealed trait Role
+
+object Role:
+  case class Master(replID: String, replOffset: Long) extends Role
+  case class Slave(masterHost: String, masterPort: Int) extends Role
+
+  def getInfoEntries(role: Role): Seq[(String, String)] =
+    role match
+      case Master(replID, replOffset) =>
+        Seq(
+          "role" -> "master",
+          "master_replid" -> replID,
+          "master_repl_offset" -> replOffset.toString
+        )
+      case Slave(masterHost, masterPort) =>
+        Seq(
+          "role" -> "slave",
+        )
+
 object ServerState:
   private val store: TrieMap[String, StoreVal] = new TrieMap()
   var dir: String = "./sample"
   var dbFile: String = "dump.rdb"
+  var port: Int = 6379
+  var role: Role = Role.Master(
+    UUID.randomUUID().toString.replace("-", ""),
+    0L
+  )
 
   /** Updates the server state at startup from the map of options provided by
     * the user
     * @param args
     *   Map of key-value pairs for various configurations
     */
-  def updateStateFromCLIArgs(args: Map[String, Any]): Unit =
+  def updateStateFromCLIArgs(args: Map[String, String]): Unit =
     args.foreach((k, v) =>
       k match
-        case "dir"    => dir = v.toString
-        case "dbfile" => dbFile = v.toString
-        case _        => println(s"Unrecognized key-value pair: $k -> $v")
+        case "dir"    => dir = v
+        case "dbfile" => dbFile = v
+        case "port"   => port = v.toInt
+        case "replicaof" =>
+          // Expecting format: "host:port"
+          val parts = v.split(":")
+          if parts.length == 2 then
+            role = Role.Slave(
+              parts(0),
+              parts(1).toInt
+            )
+          else
+            println(s"Invalid replicaof format: $v")
+
+        case _ => println(s"Unrecognized key-value pair: $k -> $v")
     )
 
     val rdbFileResult = RDBFile.loadFile(s"$dir/$dbFile")
