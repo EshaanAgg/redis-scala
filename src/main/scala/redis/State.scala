@@ -4,13 +4,13 @@ import redis.formats.RDBFile
 import redis.formats.RESPData
 
 import java.time.Instant
-import scala.collection.concurrent.TrieMap
 import java.util.UUID
+import scala.collection.concurrent.TrieMap
 
 case class StoreVal(data: RESPData, exp: Option[Instant]):
   def isDefined: Boolean =
     exp.isEmpty || exp.get.isAfter(Instant.now())
-  
+
   def isEmpty: Boolean = !isDefined
 
 sealed trait Role
@@ -29,7 +29,7 @@ object Role:
         )
       case Slave(masterHost, masterPort) =>
         Seq(
-          "role" -> "slave",
+          "role" -> "slave"
         )
 
 object ServerState:
@@ -50,9 +50,9 @@ object ServerState:
   def updateStateFromCLIArgs(args: Map[String, String]): Unit =
     args.foreach((k, v) =>
       k match
-        case "dir"    => dir = v
-        case "dbfile" => dbFile = v
-        case "port"   => port = v.toInt
+        case "dir"       => dir = v
+        case "dbfile"    => dbFile = v
+        case "port"      => port = v.toInt
         case "replicaof" =>
           // Expecting format: "host:port"
           val parts = v.split(":")
@@ -61,8 +61,7 @@ object ServerState:
               parts(0),
               parts(1).toInt
             )
-          else
-            println(s"Invalid replicaof format: $v")
+          else println(s"Invalid replicaof format: $v")
 
         case _ => println(s"Unrecognized key-value pair: $k -> $v")
     )

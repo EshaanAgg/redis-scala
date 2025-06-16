@@ -11,7 +11,8 @@ import handler.Handler
 object ArgsParser:
   private type OptionMap = Map[String, String]
 
-  private val recognizedOptions = Set("--dir", "--dbfile", "--port", "--replicaof")
+  private val recognizedOptions =
+    Set("--dir", "--dbfile", "--port", "--replicaof")
 
   def parse(args: Seq[String]): OptionMap =
     @tailrec

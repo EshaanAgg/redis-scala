@@ -3,22 +3,22 @@ package redis.formats
 import redis.ServerState
 import redis.StoreVal
 import redis.formats.RESPData.BulkString
+import redis.utils.Convert
 import redis.utils.File
 
 import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import redis.utils.Convert
 
 object RDBFile:
   private type Metadata = (String, String)
   private type DBRecord = (String, StoreVal)
 
-  private val MetadateSectionByte: Byte = 0xFA.toByte
-  private val DatabaseSectionByte: Byte = 0xFE.toByte
-  private val RecordWithMSExpiryByte: Byte = 0xFC.toByte
-  private val RecordWithSecExpiryByte: Byte = 0xFD.toByte
+  private val MetadateSectionByte: Byte = 0xfa.toByte
+  private val DatabaseSectionByte: Byte = 0xfe.toByte
+  private val RecordWithMSExpiryByte: Byte = 0xfc.toByte
+  private val RecordWithSecExpiryByte: Byte = 0xfd.toByte
 
   // Define methods on decoder to read datatypes specific to RDB file
   extension (d: Decoder)
@@ -69,7 +69,7 @@ object RDBFile:
             case -62 => 4 // 0xC2
             case _ =>
               throw new DecoderException(s"Unsupported string length: $len")
-          
+
           d.readNBytes(bufLen)
             .map(Convert.getLENumber(_).toString)
         // Read "len" bytes from the stream as a string
@@ -139,7 +139,7 @@ object RDBFile:
       d.expectByte(DatabaseSectionByte).flatMap { _ =>
         d.readInt.flatMap { idx =>
           println(s"[Database Section] Index: $idx")
-          d.expectByte(0xFB.toByte).flatMap { _ =>
+          d.expectByte(0xfb.toByte).flatMap { _ =>
             for {
               tot <- d.readInt
               exp <- d.readInt
