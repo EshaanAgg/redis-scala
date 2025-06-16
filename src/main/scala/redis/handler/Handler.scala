@@ -1,6 +1,7 @@
 package redis.handler
 
 import redis.RESP2.DataType
+import redis.handler.commands.ConfigHandler
 import redis.handler.commands.EchoHandler
 import redis.handler.commands.GetHandler
 import redis.handler.commands.PingHandler
@@ -22,11 +23,12 @@ object Handler:
       .getCommand(in)
       .flatMap(cmd =>
         val h = cmd(0).toLowerCase() match
-          case "ping" => PingHandler
-          case "echo" => EchoHandler
-          case "set"  => SetHandler
-          case "get"  => GetHandler
-          case _      => UnknownHandler
+          case "ping"   => PingHandler
+          case "echo"   => EchoHandler
+          case "set"    => SetHandler
+          case "get"    => GetHandler
+          case "config" => ConfigHandler
+          case _        => UnknownHandler
 
         val resp = h.handle(cmd)
         println(s"Sending response: ${resp.toString}")

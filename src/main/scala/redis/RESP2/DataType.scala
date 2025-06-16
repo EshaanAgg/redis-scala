@@ -119,6 +119,7 @@ object DataType:
             )
       )
 
+    def apply(arr: DataType*): Array = Array(Some(arr.toList))
     def apply(arr: List[DataType]): Array = Array(Some(arr))
 
   object Boolean:
