@@ -1,2 +1,14 @@
 debug/
 target/
+
+
+# Editors
+.idea/
+.vscode/
+.metals/
+.bloop/
+.bsp/  
+
+# Build files
+*.class
+*.jar

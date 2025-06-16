@@ -7,8 +7,17 @@ assembly / assemblyJarName := "redis.jar"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "codecrafter-redis",
-    // List your dependencies here
+    name := "redis-scala",
+    
+    scalacOptions ++= Seq(
+      "-Wunused:imports", // for OrganizeImports
+      "-Wunused:all"      // for RemoveUnused
+    ),
+
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+
     libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % "1.0.0" % Test,
     )
   )
