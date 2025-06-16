@@ -1,19 +1,36 @@
 package redis.formats
 
+import redis.ServerState
+import redis.StoreVal
+import redis.formats.RESPData.BulkString
 import redis.utils.File
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
 object RDBFile:
   private type Metadata = (String, String)
-  private val MetadateSectionByte: Byte = 0xfa.toByte
+  private type DBRecord = (String, StoreVal)
 
+  private val MetadateSectionByte: Byte = 0xfa.toByte
+  private val DatabaseSectionByte: Byte = 0xfe.toByte
   // Define methods on decoder to read datatypes specific to RDB file
   extension (d: Decoder)
+    private def expectByte(expected: Byte): Try[Unit] =
+      d.readByte.flatMap { b =>
+        if b == expected then Success(())
+        else
+          Failure(
+            new DecoderException(
+              s"Expected byte $expected, but got $b"
+            )
+          )
+      }
+
     /** Reads an integer from the RDB file format. The integer can be encoded in
       * different ways based on the first byte read.
       * @return
@@ -101,6 +118,74 @@ object RDBFile:
 
     loop(Vector.empty)
 
+  private def readDatabaseSection(d: Decoder): Try[Vector[DBRecord]] =
+    def readRecord: Try[DBRecord] =
+      d.expectByte(0).flatMap { _ =>
+        for {
+          key <- d.readString
+          value <- d.readString
+        } yield (key, StoreVal(BulkString(value), None))
+      }
+
+    def readRecordWithMSExpiry: Try[DBRecord] =
+      d.expectByte(0xfc.toByte).flatMap { _ =>
+        d.readNBytes(8)
+          .flatMap(expBytes => {
+            val exp =
+              ByteBuffer.wrap(expBytes).order(ByteOrder.LITTLE_ENDIAN).getLong
+            readRecord.map((key, value) =>
+              key -> StoreVal(value.data, Some(Instant.ofEpochMilli(exp)))
+            )
+          })
+      }
+
+    def readRecordWithSecExpiry: Try[DBRecord] =
+      d.expectByte(0xfd.toByte).flatMap { _ =>
+        d.readNBytes(4)
+          .flatMap(expBytes => {
+            val exp =
+              ByteBuffer.wrap(expBytes).order(ByteOrder.LITTLE_ENDIAN).getInt
+            readRecord.map((key, value) =>
+              key -> StoreVal(value.data, Some(Instant.ofEpochSecond(exp)))
+            )
+          })
+      }
+
+    def readHeader: Try[Int] =
+      d.expectByte(DatabaseSectionByte).flatMap { _ =>
+        d.readInt.flatMap { idx =>
+          println(s"[Database Section] Index: $idx")
+          d.expectByte(0xfb.toByte).flatMap { _ =>
+            for {
+              tot <- d.readInt
+              exp <- d.readInt
+            } yield {
+              println(
+                s"[Database Section] Total Records: $tot, Expiry Records: $exp"
+              )
+              tot
+            }
+          }
+        }
+      }
+
+    def loop(acc: Vector[DBRecord]): Try[Vector[DBRecord]] =
+      d.peekByte match
+        case Some(0) =>
+          readRecord.flatMap(record => loop(acc :+ record))
+        case Some(0xfc) =>
+          readRecordWithMSExpiry.flatMap(record => loop(acc :+ record))
+        case Some(0xfd) =>
+          readRecordWithSecExpiry.flatMap(record => loop(acc :+ record))
+        case _ => Success(acc)
+
+    d.peekByte match
+      case Some(DatabaseSectionByte) =>
+        readHeader.flatMap { _ =>
+          loop(Vector.empty)
+        }
+      case _ => Success(Vector.empty) // No database section found
+
   /** Loads all the data from Redis RDB file, and stores the same in the value
     * store. Returns the error as a string if there was any. If the file does
     * not exist, no processing happens with no error reported.
@@ -108,6 +193,7 @@ object RDBFile:
     *   The path to the database dump file
     */
   def loadFile(filePath: String): Option[String] =
+    // TODO: Parse the ending section of the RDB file as well
     File
       .getStream(filePath)
       .flatMap(s =>
@@ -121,5 +207,10 @@ object RDBFile:
               case Failure(ex) => Some(ex.toString) // Metadata reading error
               case Success(metadata) =>
                 metadata.foreach((k, v) => println(s"[Metadata] $k -> $v"))
-                None
+                readDatabaseSection(d) match
+                  case Failure(ex) =>
+                    Some(ex.toString) // Database section error
+                  case Success(records) =>
+                    records.foreach((k, v) => ServerState.addKey(k, v))
+                    None // No errors, return None
       )

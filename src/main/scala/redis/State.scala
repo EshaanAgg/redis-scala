@@ -29,7 +29,9 @@ object ServerState:
         case _        => println(s"Unrecognized key-value pair: $k -> $v")
     )
 
-    println(RDBFile.loadFile(s"$dir/$dbFile"))
+    val rdbFileResult = RDBFile.loadFile(s"$dir/$dbFile")
+    if rdbFileResult.isDefined then
+      println(s"Error loading RDB file: ${rdbFileResult.get}")
 
   /** Adds a new member to persistent storage
     * @param k
