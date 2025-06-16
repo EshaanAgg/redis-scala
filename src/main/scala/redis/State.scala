@@ -7,8 +7,9 @@ import java.time.Instant
 import scala.collection.concurrent.TrieMap
 
 case class StoreVal(data: RESPData, exp: Option[Instant]):
-  private def isDefined: Boolean =
+  def isDefined: Boolean =
     exp.isEmpty || exp.get.isAfter(Instant.now())
+  
   def isEmpty: Boolean = !isDefined
 
 object ServerState:
@@ -63,6 +64,6 @@ object ServerState:
     */
   def keys: Seq[String] =
     store
-      .filter((_, v) => v.exp.isEmpty || v.exp.get.isBefore(Instant.now()))
+      .filter(_._2.isDefined)
       .keys
       .toSeq

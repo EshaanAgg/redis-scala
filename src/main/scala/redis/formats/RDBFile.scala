@@ -5,12 +5,11 @@ import redis.StoreVal
 import redis.formats.RESPData.BulkString
 import redis.utils.File
 
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import redis.utils.Convert
 
 object RDBFile:
   private type Metadata = (String, String)
@@ -47,9 +46,7 @@ object RDBFile:
           case 1 => d.readByte.map(h => h << 6 | otherBits)
           case 2 =>
             d.readNBytes(4)
-              .map(
-                ByteBuffer.wrap(_).order(ByteOrder.BIG_ENDIAN).getInt
-              )
+              .map(Convert.getBENumber(_).toInt)
           case 3 => Success(b) // Number encoded as a string
       )
 
@@ -69,23 +66,9 @@ object RDBFile:
             case -62 => 4 // 0xC2
             case _ =>
               throw new DecoderException(s"Unsupported string length: $len")
+          
           d.readNBytes(bufLen)
-            .map(buf =>
-              // Match on the length to determine how to convert to Int
-              buf.length match
-                case 1 => buf(0).toString
-                case 2 => (buf(0) << 8) + (buf(1)).toString
-                case 4 =>
-                  ByteBuffer
-                    .wrap(buf)
-                    .order(ByteOrder.LITTLE_ENDIAN)
-                    .getInt
-                    .toString
-                case _ =>
-                  throw new DecoderException(
-                    s"Unexpected byte length: ${buf.length}"
-                  )
-            )
+            .map(Convert.getLENumber(_).toString)
         // Read "len" bytes from the stream as a string
         else d.readNBytes(len).map(String(_, "UTF-8"))
       )
@@ -131,8 +114,7 @@ object RDBFile:
       d.expectByte(0xfc.toByte).flatMap { _ =>
         d.readNBytes(8)
           .flatMap(expBytes => {
-            val exp =
-              ByteBuffer.wrap(expBytes).order(ByteOrder.LITTLE_ENDIAN).getLong
+            val exp = Convert.getLENumber(expBytes)
             readRecord.map((key, value) =>
               key -> StoreVal(value.data, Some(Instant.ofEpochMilli(exp)))
             )
@@ -140,11 +122,10 @@ object RDBFile:
       }
 
     def readRecordWithSecExpiry: Try[DBRecord] =
-      d.expectByte(0xfd.toByte).flatMap { _ =>
+      d.expectByte(0xFD.toByte).flatMap { _ =>
         d.readNBytes(4)
           .flatMap(expBytes => {
-            val exp =
-              ByteBuffer.wrap(expBytes).order(ByteOrder.LITTLE_ENDIAN).getInt
+            val exp = Convert.getLENumber(expBytes)
             readRecord.map((key, value) =>
               key -> StoreVal(value.data, Some(Instant.ofEpochSecond(exp)))
             )
@@ -155,7 +136,7 @@ object RDBFile:
       d.expectByte(DatabaseSectionByte).flatMap { _ =>
         d.readInt.flatMap { idx =>
           println(s"[Database Section] Index: $idx")
-          d.expectByte(0xfb.toByte).flatMap { _ =>
+          d.expectByte(0xFB.toByte).flatMap { _ =>
             for {
               tot <- d.readInt
               exp <- d.readInt
@@ -173,9 +154,9 @@ object RDBFile:
       d.peekByte match
         case Some(0) =>
           readRecord.flatMap(record => loop(acc :+ record))
-        case Some(0xfc) =>
+        case Some(0xFC) =>
           readRecordWithMSExpiry.flatMap(record => loop(acc :+ record))
-        case Some(0xfd) =>
+        case Some(0xFD) =>
           readRecordWithSecExpiry.flatMap(record => loop(acc :+ record))
         case _ => Success(acc)
 
