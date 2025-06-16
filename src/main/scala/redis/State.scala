@@ -50,3 +50,12 @@ object ServerState:
           None
         else Some(v)
       )
+
+  /** Returns all the keys stored in the database currently. Filters out the
+    * expired keys.
+    */
+  def allKeys: Seq[String] =
+    store
+      .filter((_, v) => v.exp.isEmpty || v.exp.get.isBefore(Instant.now()))
+      .keys
+      .toSeq

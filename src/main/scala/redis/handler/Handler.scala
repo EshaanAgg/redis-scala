@@ -4,6 +4,7 @@ import redis.RESP2.DataType
 import redis.handler.commands.ConfigHandler
 import redis.handler.commands.EchoHandler
 import redis.handler.commands.GetHandler
+import redis.handler.commands.KeysHandler
 import redis.handler.commands.PingHandler
 import redis.handler.commands.SetHandler
 import redis.handler.commands.UnknownHandler
@@ -28,6 +29,7 @@ object Handler:
           case "set"    => SetHandler
           case "get"    => GetHandler
           case "config" => ConfigHandler
+          case "keys"   => KeysHandler
           case _        => UnknownHandler
 
         val resp = h.handle(cmd)

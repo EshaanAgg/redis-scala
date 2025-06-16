@@ -25,7 +25,7 @@ object ConfigHandler extends Handler:
     then
       Failure(
         IllegalArgumentException(
-          s"Invalid arguments to 'CONFIG', expected (GET, ${supportedConfigs.mkString("|")}) , received ${args.mkString("Array(", ", ", ")")}"
+          s"Invalid arguments received: expected (CONFIG, GET, ${supportedConfigs.mkString("|")}), received ${args.mkString("Array(", ", ", ")")}"
         )
       )
     else

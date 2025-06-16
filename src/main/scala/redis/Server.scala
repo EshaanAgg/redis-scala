@@ -35,6 +35,6 @@ object ArgsParser:
 
   while (true) {
     val clientSocket = serverSocket.accept()
-    println(s"Accepted connection from: ${clientSocket.getLocalAddress}")
+    println(s"Accepted connection from: ${clientSocket.getPort}")
     Future(Handler.socketHandler(clientSocket))
   }
