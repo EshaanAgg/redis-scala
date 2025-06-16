@@ -19,7 +19,7 @@ object KeysHandler extends Handler:
           s"Expected 2 arguments to 'KEYS', received ${args.mkString("Array(", ", ", ")")}"
         )
       )
-    else if args(1).toUpperCase != "\"*\""
+    else if args(1).toUpperCase != "*"
     then
       Failure(
         IllegalArgumentException(
