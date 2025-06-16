@@ -16,7 +16,6 @@ object Parser:
       case Failure(err) =>
         throw new ParserException("Failed to serialize command", err)
       case Success(v) =>
-        println(s"Received command: ${v.toString}")
         v match
           case RESPData.Array(arr) =>
             arr match

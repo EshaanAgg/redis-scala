@@ -34,9 +34,7 @@ object Handler:
           case "info"   => InfoHandler
           case _        => UnknownHandler
 
-        val resp = h.handle(cmd)
-        println(s"Sending response: ${resp.toString}")
-        resp.map(_.getBytes)
+        h.handle(cmd).map(_.getBytes)
       )
 
   def socketHandler(socket: Socket): Unit =

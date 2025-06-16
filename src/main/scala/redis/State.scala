@@ -50,13 +50,13 @@ object ServerState:
   def updateStateFromCLIArgs(args: Map[String, String]): Unit =
     args.foreach((k, v) =>
       k match
-        case "dir"       => dir = v
-        case "dbfilename"    => dbFile = v
-        case "port"      => port = v.toInt
-        case "replicaof" =>
-          // Expecting format: "host:port"
-          val parts = v.split(":")
-          if parts.length == 2 then
+        case "dir"        => dir = v
+        case "dbfilename" => dbFile = v
+        case "port"       => port = v.toInt
+        case "replicaof"  =>
+          // Expecting format: "host port"
+          val parts = v.split(" ")
+          if parts.length == 2 && parts(0) == "localhost" then
             role = Role.Slave(
               parts(0),
               parts(1).toInt
