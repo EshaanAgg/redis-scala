@@ -1,9 +1,9 @@
 package redis.handler.commands
 
-import redis.RESP2.DataType
-import redis.RESP2.DataType.BulkString
-import redis.RESP2.DataType.{Array => RESPArray}
 import redis.ServerState
+import redis.formats.RESPData
+import redis.formats.RESPData.BulkString
+import redis.formats.RESPData.{Array => RESPArray}
 import redis.handler.Handler
 
 import scala.util.Failure
@@ -11,7 +11,7 @@ import scala.util.Success
 import scala.util.Try
 
 object KeysHandler extends Handler:
-  def handle(args: Array[String]): Try[DataType] =
+  def handle(args: Array[String]): Try[RESPData] =
     if args.length != 2
     then
       Failure(
@@ -29,6 +29,6 @@ object KeysHandler extends Handler:
     else
       Success(
         RESPArray(
-          ServerState.allKeys.map(BulkString(_)).toList
+          ServerState.keys.map(BulkString(_)).toList
         )
       )

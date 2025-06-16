@@ -1,6 +1,6 @@
 package redis.handler
 
-import redis.RESP2.DataType
+import redis.formats.RESPData
 import redis.handler.commands.ConfigHandler
 import redis.handler.commands.EchoHandler
 import redis.handler.commands.GetHandler
@@ -16,7 +16,7 @@ import scala.util.Success
 import scala.util.Try
 
 trait Handler:
-  def handle(args: Array[String]): Try[DataType]
+  def handle(args: Array[String]): Try[RESPData]
 
 object Handler:
   private def process(in: InputStream): Try[Array[Byte]] =
@@ -44,7 +44,7 @@ object Handler:
     while (!socket.isClosed) {
       process(in) match
         case Failure(err) =>
-          val errorMessage = DataType.Error(err.toString)
+          val errorMessage = RESPData.Error(err.toString)
           out.write(errorMessage.getBytes)
         case Success(bytes) =>
           out.write(bytes)

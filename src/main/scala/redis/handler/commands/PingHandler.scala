@@ -1,6 +1,6 @@
 package redis.handler.commands
 
-import redis.RESP2.DataType
+import redis.formats.RESPData
 import redis.handler.Handler
 
 import scala.util.Failure
@@ -8,7 +8,7 @@ import scala.util.Success
 import scala.util.Try
 
 object PingHandler extends Handler:
-  def handle(args: Array[String]): Try[DataType] =
+  def handle(args: Array[String]): Try[RESPData] =
     if args.length != 1
     then
       Failure(
@@ -16,4 +16,4 @@ object PingHandler extends Handler:
           s"Expected no arguments to 'PING', received ${args.mkString("Array(", ", ", ")")}"
         )
       )
-    else Success(DataType.SimpleString("PONG"))
+    else Success(RESPData.SimpleString("PONG"))

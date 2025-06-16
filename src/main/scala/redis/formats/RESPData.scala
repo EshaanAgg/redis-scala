@@ -1,23 +1,34 @@
-package redis.RESP2
+package redis.formats
 
 import redis.utils.Common
 
 import java.io.InputStream
+import java.nio.charset.StandardCharsets
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-sealed trait DataType:
+sealed trait RESPData:
   def encode: String
 
   final def getBytes: Array[Byte] =
     encode.getBytes
 
-object DataType:
-  def apply(in: InputStream): Try[DataType] =
-    DataType(Decoder(in))
+object RESPData:
+  // Define reading methods on the decoder instance specific
+  // to the RESP data format
+  extension (d: Decoder)
+    private def readString: Try[String] =
+      d.readToNextCRLF
+        .map(String(_, StandardCharsets.UTF_8))
 
-  def apply(d: Decoder): Try[DataType] =
+    private def readInteger: Try[Int] =
+      readString.map(_.toInt)
+
+  def apply(in: InputStream): Try[RESPData] =
+    RESPData(Decoder(in))
+
+  def apply(d: Decoder): Try[RESPData] =
     d.readByte.flatMap {
       case '+' => SimpleString(d)
       case '$' => BulkString(d)
@@ -28,11 +39,11 @@ object DataType:
       case x => Failure(DecoderException(s"Unrecognized RESP type marker '$x'"))
     }
 
-  case class SimpleString(str: String) extends DataType:
+  case class SimpleString(str: String) extends RESPData:
     def encode: String = s"+$str\r\n"
     override def toString: String = s"Simple('$str')"
 
-  case class BulkString(str: Option[String]) extends DataType:
+  case class BulkString(str: Option[String]) extends RESPData:
     def encode: String =
       str match
         case Some(str) => s"$$${str.length}\r\n$str\r\n"
@@ -42,15 +53,15 @@ object DataType:
       case Some(str) => s"Bulk('$str')"
       case None      => "Bulk(NULL)"
 
-  case class Error(msg: String) extends DataType:
+  case class Error(msg: String) extends RESPData:
     def encode: String = s"-$msg\r\n"
     override def toString: String = s"Err('$msg')"
 
-  case class Integer(v: Int) extends DataType:
+  case class Integer(v: Int) extends RESPData:
     def encode: String = s":$v\r\n"
     override def toString: String = s"Int($v)"
 
-  case class Array(arr: Option[List[DataType]]) extends DataType:
+  case class Array(arr: Option[List[RESPData]]) extends RESPData:
     def encode: String =
       arr match
         case Some(arr) =>
@@ -62,7 +73,7 @@ object DataType:
       case Some(arr) => s"Arr${arr.map(_.toString).mkString("(", ", ", ")")}"
       case None      => "Arr(NULL)"
 
-  case class Boolean(b: scala.Boolean) extends DataType:
+  case class Boolean(b: scala.Boolean) extends RESPData:
     def encode: String = s"#${if b then 't' else 'f'}\r\n"
     override def toString: String = s"Bool(${if b then "T" else "F"})"
 
@@ -104,7 +115,7 @@ object DataType:
         if l == -1
         then Success(Array(None))
         else
-          val elements = (1 to l).map(_ => DataType(d))
+          val elements = (1 to l).map(_ => RESPData(d))
           Common
             .sequenceTries(elements)
             .flatMap(arr =>
@@ -119,8 +130,8 @@ object DataType:
             )
       )
 
-    def apply(arr: DataType*): Array = Array(Some(arr.toList))
-    def apply(arr: List[DataType]): Array = Array(Some(arr))
+    def apply(arr: RESPData*): Array = Array(Some(arr.toList))
+    def apply(arr: List[RESPData]): Array = Array(Some(arr))
 
   object Boolean:
     val True: Boolean = Boolean(true)

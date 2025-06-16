@@ -1,9 +1,9 @@
 package redis.handler.commands
 
-import redis.RESP2.DataType
-import redis.RESP2.DataType.BulkString
-import redis.RESP2.DataType.{Array => RESPArray}
 import redis.ServerState
+import redis.formats.RESPData
+import redis.formats.RESPData.BulkString
+import redis.formats.RESPData.{Array => RESPArray}
 import redis.handler.Handler
 
 import scala.util.Failure
@@ -13,7 +13,7 @@ import scala.util.Try
 object ConfigHandler extends Handler:
   private val supportedConfigs = Seq("dir", "dbfilename")
 
-  def handle(args: Array[String]): Try[DataType] =
+  def handle(args: Array[String]): Try[RESPData] =
     if args.length != 3
     then
       Failure(

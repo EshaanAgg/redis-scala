@@ -1,9 +1,9 @@
 package redis.handler.commands
 
-import redis.RESP2.DataType
-import redis.RESP2.DataType.BulkString
 import redis.ServerState
 import redis.StoreVal
+import redis.formats.RESPData
+import redis.formats.RESPData.BulkString
 import redis.handler.Handler
 
 import java.time.Instant
@@ -12,7 +12,7 @@ import scala.util.Success
 import scala.util.Try
 
 object SetHandler extends Handler:
-  def handle(args: Array[String]): Try[DataType] =
+  def handle(args: Array[String]): Try[RESPData] =
     if args.length != 3 && args.length != 5
     then
       Failure(
@@ -29,4 +29,4 @@ object SetHandler extends Handler:
         else None
 
       ServerState.addKey(key, StoreVal(data, expiry))
-      Success(DataType.SimpleString("OK"))
+      Success(RESPData.SimpleString("OK"))

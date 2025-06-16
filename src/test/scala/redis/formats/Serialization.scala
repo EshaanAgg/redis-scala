@@ -1,13 +1,13 @@
-package redis.RESP2
+package redis.formats
 
 import java.io.ByteArrayInputStream
 import scala.util.Success
 
-import DataType._
+import RESPData._
 
 class Serialization extends munit.FunSuite:
 
-  val simpleTestCases: List[(DataType, String)] =
+  val simpleTestCases: List[(RESPData, String)] =
     List(
       SimpleString("PING") -> "+PING\r\n",
       SimpleString("pong") -> "+pong\r\n",
@@ -64,7 +64,7 @@ class Serialization extends munit.FunSuite:
       Boolean.False -> "#f\r\n"
     )
 
-  val nestedCases: List[DataType] = List(
+  val nestedCases: List[RESPData] = List(
     Array(
       List(
         Array(
@@ -101,7 +101,7 @@ class Serialization extends munit.FunSuite:
     )
   )
 
-  val allCases: Seq[DataType] = simpleTestCases.map(_._1) ::: nestedCases
+  val allCases: Seq[RESPData] = simpleTestCases.map(_._1) ::: nestedCases
 
   test("encoding") {
     simpleTestCases.foreach((cls, expectedOutput) =>
@@ -113,7 +113,7 @@ class Serialization extends munit.FunSuite:
     simpleTestCases.foreach((cls, encodedBytes) => {
       val stream = new ByteArrayInputStream(encodedBytes.getBytes())
       assertEquals(
-        DataType(stream),
+        RESPData(stream),
         Success(cls),
         s"Failed decoding for $encodedBytes"
       )
@@ -124,7 +124,7 @@ class Serialization extends munit.FunSuite:
     allCases.foreach { original =>
       val encoded = original.encode
       val stream = new ByteArrayInputStream(encoded.getBytes())
-      val roundTripped = DataType(stream)
+      val roundTripped = RESPData(stream)
 
       assertEquals(
         roundTripped,

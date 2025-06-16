@@ -1,7 +1,6 @@
-package redis.RESP2
+package redis.formats
 
 import java.io.InputStream
-import java.nio.charset.StandardCharsets
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
 import scala.util.Success
@@ -19,7 +18,22 @@ case class Decoder(in: InputStream):
     if arr.isEmpty then throw new Exception("Stream ended unexpectedly")
     Success(arr.head)
 
-  private def readToNextCRLF: Try[Array[Byte]] = Try {
+  def peekByte: Option[Int] =
+    in.mark(1)
+    val peekedByte = Try {
+      Some(in.read)
+    }.getOrElse(None)
+
+    in.reset() // Reset the stream
+    peekedByte
+
+  def readNBytes(n: Int): Try[Array[Byte]] =
+    val arr = in.readNBytes(n)
+    if arr.isEmpty then
+      throw new Exception(s"Expected to read $n bytes, but the stream ended")
+    Success(arr)
+
+  def readToNextCRLF: Try[Array[Byte]] = Try {
     val result = ArrayBuffer[Byte]()
     var foundCR = false
 
@@ -41,12 +55,5 @@ case class Decoder(in: InputStream):
 
     result.toArray
   }
-
-  def readString: Try[String] =
-    readToNextCRLF
-      .map(String(_, StandardCharsets.UTF_8))
-
-  def readInteger: Try[Int] =
-    readString.map(_.toInt)
 
 end Decoder

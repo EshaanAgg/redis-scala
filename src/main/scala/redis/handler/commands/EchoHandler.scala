@@ -1,6 +1,6 @@
 package redis.handler.commands
 
-import redis.RESP2.DataType
+import redis.formats.RESPData
 import redis.handler.Handler
 
 import scala.util.Failure
@@ -8,7 +8,7 @@ import scala.util.Success
 import scala.util.Try
 
 object EchoHandler extends Handler:
-  def handle(args: Array[String]): Try[DataType] =
+  def handle(args: Array[String]): Try[RESPData] =
     if args.length != 2
     then
       Failure(
@@ -16,4 +16,4 @@ object EchoHandler extends Handler:
           s"Expected 1 arguments to 'ECHO', received ${args.mkString("Array(", ", ", ")")}"
         )
       )
-    else Success(DataType.BulkString(args(1)))
+    else Success(RESPData.BulkString(args(1)))

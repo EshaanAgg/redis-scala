@@ -1,7 +1,7 @@
 package redis.handler.commands
 
-import redis.RESP2.DataType
 import redis.ServerState
+import redis.formats.RESPData
 import redis.handler.Handler
 
 import scala.util.Failure
@@ -9,7 +9,7 @@ import scala.util.Success
 import scala.util.Try
 
 object GetHandler extends Handler:
-  def handle(args: Array[String]): Try[DataType] =
+  def handle(args: Array[String]): Try[RESPData] =
     if args.length != 2
     then
       Failure(
@@ -19,5 +19,5 @@ object GetHandler extends Handler:
       )
     else
       ServerState.get(args(1)) match
-        case None    => Success(DataType.BulkString(None))
+        case None    => Success(RESPData.BulkString(None))
         case Some(v) => Success(v.data)

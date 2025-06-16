@@ -1,11 +1,15 @@
 package redis
 
-import redis.RESP2.DataType
+import redis.formats.RDBFile
+import redis.formats.RESPData
 
 import java.time.Instant
 import scala.collection.concurrent.TrieMap
 
-case class StoreVal(data: DataType, exp: Option[Instant])
+case class StoreVal(data: RESPData, exp: Option[Instant]):
+  private def isDefined: Boolean =
+    exp.isEmpty || exp.get.isBefore(Instant.now())
+  def isEmpty: Boolean = !isDefined
 
 object ServerState:
   private val store: TrieMap[String, StoreVal] = new TrieMap()
@@ -20,9 +24,11 @@ object ServerState:
   def updateStateFromCLIArgs(args: Map[String, Any]): Unit =
     args.foreach((k, v) =>
       k match {
-        case "dir"    => dir = v.toString
-        case "dbfile" => dbFile = v.toString
-        case _        => println(s"Unrecognized key-value pair: $k -> $v")
+        case "dir" => dir = v.toString
+        case "dbfile" =>
+          dbFile = v.toString
+          RDBFile.loadFile(dbFile)
+        case _ => println(s"Unrecognized key-value pair: $k -> $v")
       }
     )
 
@@ -45,7 +51,7 @@ object ServerState:
     store
       .get(k)
       .flatMap(v =>
-        if v.exp.isDefined && v.exp.get.isBefore(Instant.now()) then
+        if v.isEmpty then
           store -= k
           None
         else Some(v)
@@ -54,7 +60,7 @@ object ServerState:
   /** Returns all the keys stored in the database currently. Filters out the
     * expired keys.
     */
-  def allKeys: Seq[String] =
+  def keys: Seq[String] =
     store
       .filter((_, v) => v.exp.isEmpty || v.exp.get.isBefore(Instant.now()))
       .keys
