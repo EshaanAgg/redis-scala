@@ -8,7 +8,7 @@ import scala.collection.concurrent.TrieMap
 
 case class StoreVal(data: RESPData, exp: Option[Instant]):
   private def isDefined: Boolean =
-    exp.isEmpty || exp.get.isBefore(Instant.now())
+    exp.isEmpty || exp.get.isAfter(Instant.now())
   def isEmpty: Boolean = !isDefined
 
 object ServerState:
