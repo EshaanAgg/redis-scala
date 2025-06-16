@@ -13,8 +13,8 @@ case class StoreVal(data: RESPData, exp: Option[Instant]):
 
 object ServerState:
   private val store: TrieMap[String, StoreVal] = new TrieMap()
-  var dir: String = "/tmp/redis"
-  var dbFile: String = "redis.rdb"
+  var dir: String = "./sample"
+  var dbFile: String = "dump.rdb"
 
   /** Updates the server state at startup from the map of options provided by
     * the user
@@ -23,14 +23,13 @@ object ServerState:
     */
   def updateStateFromCLIArgs(args: Map[String, Any]): Unit =
     args.foreach((k, v) =>
-      k match {
-        case "dir" => dir = v.toString
-        case "dbfile" =>
-          dbFile = v.toString
-          RDBFile.loadFile(dbFile)
-        case _ => println(s"Unrecognized key-value pair: $k -> $v")
-      }
+      k match
+        case "dir"    => dir = v.toString
+        case "dbfile" => dbFile = v.toString
+        case _        => println(s"Unrecognized key-value pair: $k -> $v")
     )
+
+    println(RDBFile.loadFile(s"$dir/$dbFile"))
 
   /** Adds a new member to persistent storage
     * @param k

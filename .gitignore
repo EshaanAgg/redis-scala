@@ -1,6 +1,8 @@
 debug/
 target/
 
+# Custom testing directory
+sample/
 
 # Editors
 .idea/

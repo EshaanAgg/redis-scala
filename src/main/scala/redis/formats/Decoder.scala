@@ -1,5 +1,6 @@
 package redis.formats
 
+import java.io.BufferedInputStream
 import java.io.InputStream
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
@@ -12,26 +13,28 @@ import boundary.break
 class DecoderException(message: String, cause: Throwable = null)
     extends Exception(message, cause)
 
-case class Decoder(in: InputStream):
-  def readByte: Try[Byte] =
-    val arr = in.readNBytes(1)
-    if arr.isEmpty then throw new Exception("Stream ended unexpectedly")
-    Success(arr.head)
-
-  def peekByte: Option[Int] =
-    in.mark(1)
-    val peekedByte = Try {
-      Some(in.read)
-    }.getOrElse(None)
-
-    in.reset() // Reset the stream
-    peekedByte
+case class Decoder(rawIn: InputStream):
+  private val in: BufferedInputStream =
+    rawIn match
+      case b: BufferedInputStream => b
+      case _                      => new BufferedInputStream(rawIn)
 
   def readNBytes(n: Int): Try[Array[Byte]] =
     val arr = in.readNBytes(n)
-    if arr.isEmpty then
-      throw new Exception(s"Expected to read $n bytes, but the stream ended")
-    Success(arr)
+    if arr.length != n then
+      Failure(Exception(s"Expected $n bytes, got ${arr.length}"))
+    else Success(arr)
+
+  def readByte: Try[Byte] =
+    val value = in.read()
+    if value == -1 then Failure(Exception("Stream ended unexpectedly"))
+    else Success(value.toByte)
+
+  def peekByte: Option[Byte] =
+    in.mark(1)
+    val byte = in.read()
+    in.reset()
+    if byte == -1 then None else Some(byte.toByte)
 
   def readToNextCRLF: Try[Array[Byte]] = Try {
     val result = ArrayBuffer[Byte]()
@@ -55,5 +58,3 @@ case class Decoder(in: InputStream):
 
     result.toArray
   }
-
-end Decoder

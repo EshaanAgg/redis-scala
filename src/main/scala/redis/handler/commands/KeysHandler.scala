@@ -2,8 +2,8 @@ package redis.handler.commands
 
 import redis.ServerState
 import redis.formats.RESPData
+import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
-import redis.formats.RESPData.{Array => RESPArray}
 import redis.handler.Handler
 
 import scala.util.Failure

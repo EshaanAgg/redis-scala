@@ -3,7 +3,7 @@ package redis.formats
 import java.io.ByteArrayInputStream
 import scala.util.Success
 
-import RESPData._
+import RESPData.*
 
 class Serialization extends munit.FunSuite:
 
