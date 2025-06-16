@@ -15,6 +15,7 @@ object Server:
 
     while (true) {
       val clientSocket = serverSocket.accept()
+      println(s"Accepted connection from: ${clientSocket.getLocalAddress}")
       Future(Handler.socketHandler(clientSocket))
     }
 

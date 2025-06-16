@@ -19,7 +19,7 @@ case class Decoder(in: InputStream):
     if arr.isEmpty then throw new Exception("Stream ended unexpectedly")
     Success(arr.head)
 
-  def readToNextCRLF: Try[Array[Byte]] = Try {
+  private def readToNextCRLF: Try[Array[Byte]] = Try {
     val result = ArrayBuffer[Byte]()
     var foundCR = false
 

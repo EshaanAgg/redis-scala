@@ -3,7 +3,9 @@ package redis.RESP2
 import redis.utils.Common
 
 import java.io.InputStream
-import scala.util.{Failure, Success, Try}
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 sealed trait DataType:
   def encode: String
@@ -13,8 +15,7 @@ sealed trait DataType:
 
 object DataType:
   def apply(in: InputStream): Try[DataType] =
-    val d = Decoder(in)
-    DataType(d)
+    DataType(Decoder(in))
 
   def apply(d: Decoder): Try[DataType] =
     d.readByte.flatMap {
@@ -34,7 +35,7 @@ object DataType:
   case class BulkString(str: Option[String]) extends DataType:
     def encode: String =
       str match
-        case Some(str) => "$" + s"${str.length}\r\n$str\r\n"
+        case Some(str) => s"$$${str.length}\r\n$str\r\n"
         case None      => "$-1\r\n"
 
     override def toString: String = str match
