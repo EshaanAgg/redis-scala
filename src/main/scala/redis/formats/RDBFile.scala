@@ -15,8 +15,11 @@ object RDBFile:
   private type Metadata = (String, String)
   private type DBRecord = (String, StoreVal)
 
-  private val MetadateSectionByte: Byte = 0xfa.toByte
-  private val DatabaseSectionByte: Byte = 0xfe.toByte
+  private val MetadateSectionByte: Byte = 0xFA.toByte
+  private val DatabaseSectionByte: Byte = 0xFE.toByte
+  private val RecordWithMSExpiryByte: Byte = 0xFC.toByte
+  private val RecordWithSecExpiryByte: Byte = 0xFD.toByte
+
   // Define methods on decoder to read datatypes specific to RDB file
   extension (d: Decoder)
     private def expectByte(expected: Byte): Try[Unit] =
@@ -111,7 +114,7 @@ object RDBFile:
       }
 
     def readRecordWithMSExpiry: Try[DBRecord] =
-      d.expectByte(0xfc.toByte).flatMap { _ =>
+      d.expectByte(RecordWithMSExpiryByte).flatMap { _ =>
         d.readNBytes(8)
           .flatMap(expBytes => {
             val exp = Convert.getLENumber(expBytes)
@@ -122,7 +125,7 @@ object RDBFile:
       }
 
     def readRecordWithSecExpiry: Try[DBRecord] =
-      d.expectByte(0xFD.toByte).flatMap { _ =>
+      d.expectByte(RecordWithSecExpiryByte).flatMap { _ =>
         d.readNBytes(4)
           .flatMap(expBytes => {
             val exp = Convert.getLENumber(expBytes)
@@ -132,7 +135,7 @@ object RDBFile:
           })
       }
 
-    def readHeader: Try[Int] =
+    def readHeader: Try[(Int, Int)] =
       d.expectByte(DatabaseSectionByte).flatMap { _ =>
         d.readInt.flatMap { idx =>
           println(s"[Database Section] Index: $idx")
@@ -140,12 +143,7 @@ object RDBFile:
             for {
               tot <- d.readInt
               exp <- d.readInt
-            } yield {
-              println(
-                s"[Database Section] Total Records: $tot, Expiry Records: $exp"
-              )
-              tot
-            }
+            } yield tot -> exp
           }
         }
       }
@@ -154,16 +152,26 @@ object RDBFile:
       d.peekByte match
         case Some(0) =>
           readRecord.flatMap(record => loop(acc :+ record))
-        case Some(0xFC) =>
+        case Some(RecordWithMSExpiryByte) =>
           readRecordWithMSExpiry.flatMap(record => loop(acc :+ record))
-        case Some(0xFD) =>
+        case Some(RecordWithSecExpiryByte) =>
           readRecordWithSecExpiry.flatMap(record => loop(acc :+ record))
         case _ => Success(acc)
 
     d.peekByte match
       case Some(DatabaseSectionByte) =>
-        readHeader.flatMap { _ =>
-          loop(Vector.empty)
+        readHeader.flatMap { (tot, exp) =>
+          loop(Vector.empty).flatMap(records => {
+            if records.size != tot then
+              Failure(
+                new DecoderException(
+                  s"Expected $tot records, but found ${records.size}"
+                )
+              )
+            else
+              println(s"[Database Section] Total Records: $tot, Expiry: $exp")
+              Success(records)
+          })
         }
       case _ => Success(Vector.empty) // No database section found
 

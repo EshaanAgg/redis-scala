@@ -34,7 +34,7 @@ object Handler:
 
         val resp = h.handle(cmd)
         println(s"Sending response: ${resp.toString}")
-        h.handle(cmd).map(_.getBytes)
+        resp.map(_.getBytes)
       )
 
   def socketHandler(socket: Socket): Unit =
