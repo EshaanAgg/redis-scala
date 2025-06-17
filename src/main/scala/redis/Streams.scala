@@ -50,7 +50,7 @@ object EntryID:
 
   private def validateID(streamName: String, id: EntryID): Option[String] =
     val lastEntry = StreamStore.lastEntry(streamName)
-    if id <= EntryID(0, 1)
+    if id <= EntryID(0, 0)
     then Some("ERR The ID specified in XADD must be greater than 0-0")
     else if lastEntry.isDefined && id <= lastEntry.get
     then
