@@ -1,7 +1,12 @@
 package redis.handler
 
 import redis.Connection
+import redis.Role.Master
+import redis.Role.Slave
+import redis.ServerState
 import redis.formats.RESPData
+import redis.formats.RESPData.Array as RESPArray
+import redis.formats.RESPData.BulkString
 import redis.handler.commands.ConfigHandler
 import redis.handler.commands.EchoHandler
 import redis.handler.commands.GetHandler
@@ -12,8 +17,8 @@ import redis.handler.commands.PsyncHandler
 import redis.handler.commands.ReplconfHandler
 import redis.handler.commands.SetHandler
 import redis.handler.commands.UnknownHandler
+import redis.handler.postHandlers.PsyncPostHandler
 
-import java.net.Socket
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -28,6 +33,8 @@ trait PostMessageHandler:
   def handle(args: Array[String], conn: Connection): Unit
 
 object Handler:
+  val writeCommands: Set[String] = Set("SET", "INCR")
+
   val handlerMap: Map[String, Handler] = Map(
     "ping" -> PingHandler,
     "echo" -> EchoHandler,
@@ -44,6 +51,7 @@ object Handler:
   )
 
   val postMessageHandlers: Map[String, PostMessageHandler] = Map(
+    "psync" -> PsyncPostHandler
   )
 
   /** Processes the command received from the client connection, and sends the
@@ -54,7 +62,7 @@ object Handler:
     * @param conn
     *   Connection object representing the client connection.
     */
-  private def sendResponse(args: Array[String], conn: Connection): Unit =
+  private def sendResponse(args: Array[String], conn: Connection): Boolean =
     val response = args(0) match
       case x if handlerMap.contains(x.toLowerCase) =>
         handlerMap(x.toLowerCase).handle(args)
@@ -62,11 +70,14 @@ object Handler:
         handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
       case _ => UnknownHandler.handle(args)
 
-    conn.sendData(
-      response match
-        case Success(data) => data
-        case Failure(err)  => RESPData.Error(err.toString)
-    )
+    if conn.shouldSendCommandResult(args) then
+      conn.sendData(
+        response match
+          case Success(data) => data
+          case Failure(err)  => RESPData.Error(err.toString)
+      )
+
+    response.isSuccess
 
   /** Runs the appropriate post message handler based on the command received.
     * @param args
@@ -77,6 +88,19 @@ object Handler:
       case x if postMessageHandlers.contains(x.toLowerCase) =>
         postMessageHandlers(x.toLowerCase).handle(args, conn)
       case _ => ()
+
+  /** If master, then stream all the recieved write commands to all the
+    * connected replicas.
+    * @param bytes
+    * @return
+    */
+  private def streamToReplicas(args: Array[String]) =
+    if writeCommands.contains(args(0).toUpperCase) then
+      val bytes = RESPArray(args.map(BulkString(_)).toList).getBytes
+      ServerState.role match
+        case Master(_, _, replicas) =>
+          replicas.foreach(r => r.sendBytes(bytes))
+        case Slave(_, _) => ()
 
   /** Processes the incoming connection by reading the command from the input
     * stream, sending the response back to the client, and handling any
@@ -90,14 +114,15 @@ object Handler:
     Parser.getCommand(in) match
       case Success(args) =>
         if args.nonEmpty then
-          sendResponse(args, conn)
-          postMessage(args, conn)
+          streamToReplicas(args)
+          // Send response to the client, and if the same is successful,
+          // run the post message handler if applicable.
+          if sendResponse(args, conn)
+          then postMessage(args, conn)
       case Failure(err) =>
         val errorMessage = RESPData.Error(err.toString)
         conn.sendBytes(errorMessage.getBytes)
 
-  def socketHandler(socket: Socket): Unit =
-    val conn = Connection(socket)
-
+  def connHandler(conn: Connection): Unit =
     while (!conn.isClosed)
       process(conn)

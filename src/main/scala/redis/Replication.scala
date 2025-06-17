@@ -3,8 +3,11 @@ package redis
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
 import redis.formats.RESPData.SimpleString
+import redis.handler.Handler
 
 import scala.collection.mutable.ArraySeq
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 sealed trait Role:
   def performHandshake: Unit
@@ -20,13 +23,16 @@ object Role:
         s"[Handshake] Master role with replID: $replID and replOffset: $replOffset"
       )
 
+  // Conn is the connection to the master than is opened by the slave
   case class Slave(masterHost: String, masterPort: Int) extends Role:
     var masterReplID: String = "?"
     var masterReplOffset: Long = -1L
 
-    override def performHandshake: Unit =
-      val conn = new Connection(masterHost, masterPort)
+    val conn = new Connection(masterHost, masterPort)
+    conn.isMasterConnection = true
+    Future(Handler.connHandler(conn)) // Register a handler for this
 
+    override def performHandshake: Unit =
       // Step 1: Send a PING message to verify connection
       conn.sendAndExpectResponse(
         RESPArray(BulkString("PING")),
@@ -82,7 +88,7 @@ object Role:
           "master_replid" -> replID,
           "master_repl_offset" -> replOffset.toString
         )
-      case Slave(masterHost, masterPort) =>
+      case Slave(_, _) =>
         Seq(
           "role" -> "slave"
         )

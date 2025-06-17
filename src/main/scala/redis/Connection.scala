@@ -10,6 +10,7 @@ import scala.util.Try
 
 class Connection(val host: String, val port: Int):
   private var conn: Option[Socket] = None
+  var isMasterConnection = true
 
   def connection: Socket =
     if conn.isEmpty then conn = Some(new Socket(host, port))
@@ -20,11 +21,10 @@ class Connection(val host: String, val port: Int):
       conn.get.close()
       conn = None
 
-  /*
-   * Sends a byte array to the connection's output stream.
-   * @param bytes
-   *   The byte array to be sent.
-   */
+  /** Sends a byte array to the connection's output stream.
+    * @param bytes
+    *   The byte array to be sent.
+    */
   def sendBytes(bytes: Array[Byte]): Unit =
     Try {
       val out = connection.getOutputStream
@@ -67,6 +67,16 @@ class Connection(val host: String, val port: Int):
 
   def sendData(data: RESPData): Unit =
     sendBytes(data.getBytes)
+
+  // Should send the results back to the client
+  // only if it not a master connection, or it is a REPLCONF GETACK command
+  // from the master
+  def shouldSendCommandResult(cmd: Array[String]): Boolean =
+    if !isMasterConnection then true
+    else
+      cmd.length >= 2 && cmd(0).toLowerCase == "replconf" && cmd(
+        1
+      ).toLowerCase == "getack"
 
 object Connection:
   def apply(socket: Socket): Connection =
