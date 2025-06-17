@@ -24,11 +24,15 @@ import scala.util.Try
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
+
+trait HandlerWithConnection:
+  def handle(args: Array[String], conn: Connection): Try[RESPData]
+
 trait PostMessageHandler:
   def handle(args: Array[String], conn: Connection): Unit
 
 object Handler:
-  val writeCommands: Set[String] = Set("SET", "INCR")
+  val writeCommands: Set[String] = Set("SET", "INCR", "XADD")
 
   val handlerMap: Map[String, Handler] = Map(
     "ping" -> PingHandler,
@@ -38,7 +42,10 @@ object Handler:
     "config" -> ConfigHandler,
     "keys" -> KeysHandler,
     "info" -> InfoHandler,
-    "psync" -> PsyncHandler,
+    "psync" -> PsyncHandler
+  )
+
+  val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
     "replconf" -> ReplconfHandler
   )
 
@@ -59,6 +66,8 @@ object Handler:
     val response = args(0) match
       case x if handlerMap.contains(x.toLowerCase) =>
         handlerMap(x.toLowerCase).handle(args)
+      case x if handlerWithConnectionMap.contains(x.toLowerCase) =>
+        handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
       case _ => UnknownHandler.handle(args)
 
     if conn.shouldSendCommandResult(args) then

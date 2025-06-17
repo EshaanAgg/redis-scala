@@ -22,17 +22,6 @@ object RDBFile:
 
   // Define methods on decoder to read datatypes specific to RDB file
   extension (d: Decoder)
-    private def expectByte(expected: Byte): Try[Unit] =
-      d.readByte.flatMap { b =>
-        if b == expected then Success(())
-        else
-          Failure(
-            new DecoderException(
-              s"Expected byte $expected, but got $b"
-            )
-          )
-      }
-
     /** Reads an integer from the RDB file format. The integer can be encoded in
       * different ways based on the first byte read.
       * @return

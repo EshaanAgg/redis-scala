@@ -6,14 +6,14 @@ import redis.Role.Slave
 import redis.ServerState
 import redis.formats.RESPData
 import redis.formats.RESPData.SimpleString
-import redis.handler.Handler
+import redis.handler.HandlerWithConnection
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-object ReplconfHandler extends Handler:
-  def handle(args: Array[String]): Try[RESPData] =
+object ReplconfHandler extends HandlerWithConnection:
+  def handle(args: Array[String], conn: Connection): Try[RESPData] =
     ServerState.role match
       case Slave(_, _) =>
         Failure(
@@ -34,7 +34,7 @@ object ReplconfHandler extends Handler:
         else if args(1).toLowerCase == "listening-port"
         then
           println(s"[Registered Replica] :${args(2)}")
-          m.replicas += Connection("localhost", args(2).toInt)
+          m.replicas += conn
           Success(SimpleString("OK"))
 
         // Handle capa command

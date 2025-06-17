@@ -29,15 +29,19 @@ object RESPData:
     RESPData(Decoder(in))
 
   def apply(d: Decoder): Try[RESPData] =
-    d.readByte.flatMap {
-      case '+' => SimpleString(d)
-      case '$' => BulkString(d)
-      case '-' => Error(d)
-      case ':' => Integer(d)
-      case '*' => Array(d)
-      case '#' => Boolean(d)
-      case x => Failure(DecoderException(s"Unrecognized RESP type marker '$x'"))
-    }
+    d.peekByte match
+      case Some('+') => SimpleString(d)
+      case Some('$') => BulkString(d)
+      case Some('-') => Error(d)
+      case Some(':') => Integer(d)
+      case Some('*') => Array(d)
+      case Some('#') => Boolean(d)
+      case Some(x) =>
+        Failure(DecoderException(s"Unrecognized RESP type marker '$x'"))
+      case None =>
+        Failure(
+          DecoderException("Unexpected end of stream while reading RESP data")
+        )
 
   case class SimpleString(str: String) extends RESPData:
     def encode: String = s"+$str\r\n"
@@ -79,56 +83,62 @@ object RESPData:
 
   object SimpleString:
     def apply(d: Decoder): Try[SimpleString] =
-      d.readString.map(SimpleString(_))
+      d.expectByte('+').flatMap(_ => d.readString.map(SimpleString(_)))
 
   object BulkString:
     def apply(d: Decoder): Try[BulkString] =
-      d.readInteger.flatMap(l =>
-        if l == -1
-        then Success(BulkString(None))
-        else
-          d.readString.flatMap(s =>
-            if s.length == l
-            then Success(BulkString(s))
+      d.expectByte('$')
+        .flatMap(_ =>
+          d.readInteger.flatMap(l =>
+            if l == -1
+            then Success(BulkString(None))
             else
-              Failure(
-                DecoderException(
-                  s"Length of read bytes is ${s.length} while expected it to be $l"
-                )
+              d.readString.flatMap(s =>
+                if s.length == l
+                then Success(BulkString(s))
+                else
+                  Failure(
+                    DecoderException(
+                      s"Length of read bytes is ${s.length} while expected it to be $l"
+                    )
+                  )
               )
           )
-      )
+        )
 
     def apply(str: String): BulkString = BulkString(Some(str))
 
   object Error:
     def apply(d: Decoder): Try[Error] =
-      d.readString.map(Error(_))
+      d.expectByte('-').flatMap(_ => d.readString.map(Error(_)))
 
   object Integer:
     def apply(d: Decoder): Try[Integer] =
-      d.readInteger.map(Integer(_))
+      d.expectByte(':').flatMap(_ => d.readInteger.map(Integer(_)))
 
   object Array:
     def apply(d: Decoder): Try[Array] =
-      d.readInteger.flatMap(l =>
-        if l == -1
-        then Success(Array(None))
-        else
-          val elements = (1 to l).map(_ => RESPData(d))
-          Common
-            .sequenceTries(elements)
-            .flatMap(arr =>
-              if arr.length == l
-              then Success(Array(arr))
-              else
-                Failure(
-                  DecoderException(
-                    s"Length of elements parsed is ${arr.length} while expected it to be $l"
-                  )
+      d.expectByte('*')
+        .flatMap(_ =>
+          d.readInteger.flatMap(l =>
+            if l == -1
+            then Success(Array(None))
+            else
+              val elements = (1 to l).map(_ => RESPData(d))
+              Common
+                .sequenceTries(elements)
+                .flatMap(arr =>
+                  if arr.length == l
+                  then Success(Array(arr))
+                  else
+                    Failure(
+                      DecoderException(
+                        s"Length of elements parsed is ${arr.length} while expected it to be $l"
+                      )
+                    )
                 )
-            )
-      )
+          )
+        )
 
     def apply(arr: RESPData*): Array = Array(Some(arr.toList))
     def apply(arr: List[RESPData]): Array = Array(Some(arr))
@@ -138,9 +148,14 @@ object RESPData:
     val False: Boolean = Boolean(false)
 
     def apply(d: Decoder): Try[Boolean] =
-      d.readString.flatMap {
-        case "f" => Success(False)
-        case "t" => Success(True)
-        case x =>
-          Failure(DecoderException(s"Unexpected value '$x' for Boolean type"))
-      }
+      d.expectByte('#')
+        .flatMap(_ =>
+          d.readString.flatMap {
+            case "f" => Success(False)
+            case "t" => Success(True)
+            case x =>
+              Failure(
+                DecoderException(s"Unexpected value '$x' for Boolean type")
+              )
+          }
+        )

@@ -36,6 +36,17 @@ case class Decoder(rawIn: InputStream):
     in.reset()
     if byte == -1 then None else Some(byte.toByte)
 
+  def expectByte(expected: Byte): Try[Unit] =
+    readByte.flatMap { b =>
+      if b == expected then Success(())
+      else
+        Failure(
+          new DecoderException(
+            s"Expected byte $expected, but got $b"
+          )
+        )
+    }
+
   def readToNextCRLF: Try[Array[Byte]] = Try {
     val result = ArrayBuffer[Byte]()
     var foundCR = false

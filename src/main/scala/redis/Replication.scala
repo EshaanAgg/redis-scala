@@ -77,6 +77,12 @@ object Role:
         case _ =>
           throw new Exception(s"Unexpected response from PSYNC: $resp")
 
+      // Step 4: Should recieve a RDB file from the master
+      val rdbBytes = conn.getBytes
+      println(
+        s"[Handshake] [RDB File Received] ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
+      )
+
       conn.registerInputHandler
 
   def getInfoEntries(role: Role): Seq[(String, String)] =
