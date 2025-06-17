@@ -3,11 +3,8 @@ package redis
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
 import redis.formats.RESPData.SimpleString
-import redis.handler.Handler
 
 import scala.collection.mutable.ArraySeq
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 sealed trait Role:
   def performHandshake: Unit
@@ -29,8 +26,9 @@ object Role:
     var masterReplOffset: Long = -1L
 
     val conn: Connection = Connection(masterHost, masterPort, true)
-    Future(Handler.connHandler(conn)) // Register a handler for connection
 
+    // Perform the handshake with the master server
+    // and then register the connection handler for all subsequent messages
     override def performHandshake: Unit =
       // Step 1: Send a PING message to verify connection
       conn.sendAndExpectResponse(
@@ -79,6 +77,8 @@ object Role:
         case _ =>
           throw new Exception(s"Unexpected response from PSYNC: $resp")
 
+        conn.registerInputHandler
+        
   def getInfoEntries(role: Role): Seq[(String, String)] =
     role match
       case Master(replID, replOffset, _) =>

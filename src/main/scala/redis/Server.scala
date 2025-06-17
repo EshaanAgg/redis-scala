@@ -3,10 +3,6 @@ package redis
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-
-import handler.Handler
 
 object ArgsParser:
   private type OptionMap = Map[String, String]
@@ -37,5 +33,5 @@ object ArgsParser:
   while (true) {
     val clientSocket = serverSocket.accept()
     println(s"Accepted connection from :${clientSocket.getPort}")
-    Future(Handler.connHandler(Connection(clientSocket)))
+    Connection(clientSocket).registerInputHandler
   }

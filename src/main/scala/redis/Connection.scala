@@ -2,18 +2,21 @@ package redis
 
 import redis.formats.RESPData
 
-import java.io.InputStream
 import java.net.Socket
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import redis.handler.Handler
 
 case class Connection(
     val host: String,
     val port: Int,
-    val conn: Socket,
+    private val conn: Socket,
     val isMasterConnection: Boolean
 ):
+  val in = conn.getInputStream
+  val out = conn.getOutputStream
+
   def disconnect: Unit =
     conn.close()
 
@@ -23,7 +26,6 @@ case class Connection(
     */
   def sendBytes(bytes: Array[Byte]): Unit =
     Try {
-      val out = conn.getOutputStream
       out.write(bytes)
       out.flush()
     } recover { case e: Exception =>
@@ -33,7 +35,6 @@ case class Connection(
 
   def sendAndExpectResponse(toSend: RESPData, expect: RESPData): Unit =
     sendBytes(toSend.getBytes)
-    val in = conn.getInputStream
     RESPData(in) match
       case Success(v) =>
         if v != expect then
@@ -47,7 +48,6 @@ case class Connection(
 
   def sendAndGetResponse(toSend: RESPData): RESPData =
     sendBytes(toSend.getBytes)
-    val in = conn.getInputStream
     RESPData(in) match
       case Failure(ex) =>
         throw new Exception(
@@ -56,9 +56,6 @@ case class Connection(
       case Success(v) => v
 
   def isClosed: Boolean = conn.isClosed
-
-  def inputStream: InputStream =
-    conn.getInputStream
 
   def sendData(data: RESPData): Unit =
     sendBytes(data.getBytes)
@@ -72,6 +69,17 @@ case class Connection(
       cmd.length >= 2 && cmd(0).toLowerCase == "replconf" && cmd(
         1
       ).toLowerCase == "getack"
+
+  def registerInputHandler: Unit =
+    new Thread(() =>
+      try
+        while !isClosed do
+          Handler.connectionHandler(in, this)
+      catch
+        case e: Exception =>
+          println(s"Error in input handler: ${e.getMessage}")
+          disconnect
+    ).start()
 
 object Connection:
   def apply(socket: Socket): Connection =

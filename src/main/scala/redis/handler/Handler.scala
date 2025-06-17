@@ -22,6 +22,7 @@ import redis.handler.postHandlers.PsyncPostHandler
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.io.InputStream
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -109,9 +110,7 @@ object Handler:
     * @param conn
     *   Connection object representing the client connection.
     */
-  private def process(conn: Connection): Unit =
-    val in = conn.inputStream
-
+  def connectionHandler(in: InputStream, conn: Connection): Unit =
     Parser.getCommand(in) match
       case Success(args) =>
         if args.nonEmpty then
@@ -123,7 +122,4 @@ object Handler:
       case Failure(err) =>
         val errorMessage = RESPData.Error(err.toString)
         conn.sendBytes(errorMessage.getBytes)
-
-  def connHandler(conn: Connection): Unit =
-    while (!conn.isClosed)
-      process(conn)
+    
