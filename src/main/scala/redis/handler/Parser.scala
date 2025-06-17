@@ -8,7 +8,11 @@ import scala.util.Success
 import scala.util.Try
 
 class ParserException(message: String, cause: Throwable = null)
-    extends Exception(message, cause)
+    extends Exception(message, cause):
+
+  override def getMessage: String =
+    if cause == null then message
+    else s"$message: ${cause.getMessage}"
 
 object Parser:
   def getCommand(in: InputStream): Try[Array[String]] =

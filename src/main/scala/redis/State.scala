@@ -6,6 +6,7 @@ import redis.formats.RESPData
 import java.time.Instant
 import java.util.UUID
 import scala.collection.concurrent.TrieMap
+import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
 case class StoreVal(data: RESPData, exp: Option[Instant]):
@@ -22,8 +23,18 @@ object ServerState:
   var role: Role = Role.Master(
     UUID.randomUUID().toString.replace("-", ""),
     0L,
-    Array.empty[Connection]
+    ListBuffer.empty[Connection]
   )
+
+  /** Returns all the replicas that the connected server should stream data to.
+    * If the server is a slave, it returns an empty array.
+    * @return
+    *   Array of connections to the replicas
+    */
+  def replicas: Array[Connection] =
+    role match
+      case Role.Master(_, _, replicas) => replicas.toArray
+      case Role.Slave(_, _)            => Array.empty[Connection]
 
   /** Updates the server state at startup from the map of options provided by
     * the user
@@ -53,6 +64,7 @@ object ServerState:
     if rdbFileResult.isDefined then
       println(s"Error loading RDB file: ${rdbFileResult.get}")
 
+  def performHandshake: Unit =
     val handshake = Try {
       role.performHandshake
     }

@@ -1,8 +1,6 @@
 package redis.handler
 
 import redis.Connection
-import redis.Role.Master
-import redis.Role.Slave
 import redis.ServerState
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
@@ -19,17 +17,13 @@ import redis.handler.commands.SetHandler
 import redis.handler.commands.UnknownHandler
 import redis.handler.postHandlers.PsyncPostHandler
 
+import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import java.io.InputStream
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
-
-trait HandlerWithConnection:
-  def handle(args: Array[String], conn: Connection): Try[RESPData]
-
 trait PostMessageHandler:
   def handle(args: Array[String], conn: Connection): Unit
 
@@ -44,10 +38,7 @@ object Handler:
     "config" -> ConfigHandler,
     "keys" -> KeysHandler,
     "info" -> InfoHandler,
-    "psync" -> PsyncHandler
-  )
-
-  val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
+    "psync" -> PsyncHandler,
     "replconf" -> ReplconfHandler
   )
 
@@ -64,11 +55,10 @@ object Handler:
     *   Connection object representing the client connection.
     */
   private def sendResponse(args: Array[String], conn: Connection): Boolean =
+    println(s"Received command: ${args.mkString("(", ", ", ")")}")
     val response = args(0) match
       case x if handlerMap.contains(x.toLowerCase) =>
         handlerMap(x.toLowerCase).handle(args)
-      case x if handlerWithConnectionMap.contains(x.toLowerCase) =>
-        handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
       case _ => UnknownHandler.handle(args)
 
     if conn.shouldSendCommandResult(args) then
@@ -98,10 +88,7 @@ object Handler:
   private def streamToReplicas(args: Array[String]) =
     if writeCommands.contains(args(0).toUpperCase) then
       val bytes = RESPArray(args.map(BulkString(_)).toList).getBytes
-      ServerState.role match
-        case Master(_, _, replicas) =>
-          replicas.foreach(r => r.sendBytes(bytes))
-        case Slave(_, _) => ()
+      ServerState.replicas.foreach(_.sendBytes(bytes))
 
   /** Processes the incoming connection by reading the command from the input
     * stream, sending the response back to the client, and handling any
@@ -122,4 +109,3 @@ object Handler:
       case Failure(err) =>
         val errorMessage = RESPData.Error(err.toString)
         conn.sendBytes(errorMessage.getBytes)
-    

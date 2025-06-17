@@ -30,6 +30,8 @@ object ArgsParser:
   serverSocket.bind(new InetSocketAddress("localhost", ServerState.port))
   println(s"Server started at port: ${ServerState.port}")
 
+  ServerState.performHandshake
+
   while (true) {
     val clientSocket = serverSocket.accept()
     println(s"Accepted connection from :${clientSocket.getPort}")

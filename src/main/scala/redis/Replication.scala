@@ -4,7 +4,7 @@ import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
 import redis.formats.RESPData.SimpleString
 
-import scala.collection.mutable.ArraySeq
+import scala.collection.mutable.ListBuffer
 
 sealed trait Role:
   def performHandshake: Unit
@@ -13,7 +13,7 @@ object Role:
   case class Master(
       replID: String,
       replOffset: Long,
-      replicas: ArraySeq[Connection]
+      replicas: ListBuffer[Connection]
   ) extends Role:
     override def performHandshake: Unit =
       println(
@@ -77,8 +77,8 @@ object Role:
         case _ =>
           throw new Exception(s"Unexpected response from PSYNC: $resp")
 
-        conn.registerInputHandler
-        
+      conn.registerInputHandler
+
   def getInfoEntries(role: Role): Seq[(String, String)] =
     role match
       case Master(replID, replOffset, _) =>

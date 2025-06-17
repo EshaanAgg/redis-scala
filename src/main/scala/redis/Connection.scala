@@ -1,17 +1,17 @@
 package redis
 
 import redis.formats.RESPData
+import redis.handler.Handler
 
 import java.net.Socket
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import redis.handler.Handler
 
 case class Connection(
     val host: String,
     val port: Int,
-    private val conn: Socket,
+    val conn: Socket,
     val isMasterConnection: Boolean
 ):
   val in = conn.getInputStream
@@ -72,9 +72,7 @@ case class Connection(
 
   def registerInputHandler: Unit =
     new Thread(() =>
-      try
-        while !isClosed do
-          Handler.connectionHandler(in, this)
+      try while !isClosed do Handler.connectionHandler(in, this)
       catch
         case e: Exception =>
           println(s"Error in input handler: ${e.getMessage}")
