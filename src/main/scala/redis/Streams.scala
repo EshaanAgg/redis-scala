@@ -12,10 +12,21 @@ case class EntryID(msTime: Long, seq: Long):
   def getRESP: RESPData =
     BulkString(this.toString)
 
-  def isBiggerThan(other: EntryID): Boolean =
+  def > (other: EntryID): Boolean =
     if this.msTime > other.msTime then true
     else if this.msTime == other.msTime then this.seq > other.seq
     else false
+  
+  def < (other: EntryID): Boolean =
+    if this.msTime < other.msTime then true
+    else if this.msTime == other.msTime then this.seq < other.seq
+    else false
+  
+  def <= (other: EntryID): Boolean =
+    this < other || this == other
+
+  def >= (other: EntryID): Boolean =
+    this > other || this == other
 
 object EntryID:
   private def getAutogeneraredID(streamName: String): EntryID =
@@ -39,9 +50,9 @@ object EntryID:
 
   private def validateID(streamName: String, id: EntryID): Option[String] =
     val lastEntry = StreamStore.lastEntry(streamName)
-    if !id.isBiggerThan(EntryID(0, 0))
+    if id <= EntryID(0, 1)
     then Some("ERR The ID specified in XADD must be greater than 0-0")
-    else if lastEntry.isDefined && !id.isBiggerThan(lastEntry.get)
+    else if lastEntry.isDefined && id <= lastEntry.get
     then
       Some(
         "ERR The ID specified in XADD is equal or smaller than the target stream top item"
@@ -65,7 +76,20 @@ object EntryID:
           case Some(err) => Left(err)
           case None      => Right(entryID)
 
-case class Entry(id: EntryID, data: Map[String, String])
+  def forRange(id: String): EntryID =
+    val parts = id.split("-")
+    if parts.length != 2
+      then EntryID(id.toLong, 0) // Default ID for range queries
+      else EntryID(parts(0).toLong, parts(1).toLong)
+
+case class Entry(id: EntryID, data: Map[String, String]):
+    def getResp: RESPData = 
+        RESPData.Array(
+            id.getRESP,
+            RESPData.Array(
+                data.flatMap((k, v) => List(k, v)).map(RESPData.BulkString(_)).toList
+            )
+        )
 
 object Entry:
   def apply(args: Array[String]): Either[String, Entry] =
@@ -85,7 +109,7 @@ object Entry:
 type StreamData = List[Entry]
 
 object StreamStore:
-  val streams: TreeMap[String, StreamData] = TreeMap[String, StreamData]()
+  private val streams: TreeMap[String, StreamData] = TreeMap[String, StreamData]()
 
   /** Creates a new stream with the given name if it does not already exist.
     * Throws an exception if the stream already exists.
@@ -115,6 +139,15 @@ object StreamStore:
 
   def streamExists(name: String): Boolean =
     streams.contains(name)
+
+  def getStream(name: String): Option[StreamData] =
+    streams.get(name)
+  
+  def firstEntry(name: String): Option[EntryID] =
+    streams.get(name) match
+      case Some(entries) if entries.nonEmpty =>
+        Some(entries.head.id)
+      case _ => None
 
   def lastEntry(name: String): Option[EntryID] =
     streams.get(name) match

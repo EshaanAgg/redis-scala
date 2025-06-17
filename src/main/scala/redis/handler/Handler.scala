@@ -23,6 +23,7 @@ import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import redis.handler.commands.XrangeHandler
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -46,7 +47,8 @@ object Handler:
     "info" -> InfoHandler,
     "psync" -> PsyncHandler,
     "type" -> TypeHandler,
-    "xadd" -> XaddHandler
+    "xadd" -> XaddHandler,
+    "xrange" -> XrangeHandler,
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
