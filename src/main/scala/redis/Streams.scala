@@ -69,14 +69,18 @@ case class Entry(id: EntryID, data: Map[String, String])
 
 object Entry:
   def apply(args: Array[String]): Either[String, Entry] =
-    val streamName = args(0)
-    args.drop(1).grouped(2).map(p => p(0) -> p(1)).toMap match
-      case data if data.isEmpty =>
-        Left("ERR XADD requires at least one field-value pair")
-      case data =>
-        EntryID(streamName, args(0)) match
-          case Right(id) => Right(Entry(id, data))
-          case Left(err) => Left(err)
+    println(s"Creating entry from args: ${args.mkString(", ")}")
+    EntryID(args(0), args(1)).map(
+        id => {
+            val data = args
+            .drop(2)
+            .grouped(2)
+            .map(p => (p(0), p(1)))
+            .toMap
+            Entry(id, data)
+        }
+    )
+    
 
 type StreamData = List[Entry]
 
