@@ -14,15 +14,15 @@ import redis.handler.commands.PingHandler
 import redis.handler.commands.PsyncHandler
 import redis.handler.commands.ReplconfHandler
 import redis.handler.commands.SetHandler
+import redis.handler.commands.TypeHandler
 import redis.handler.commands.UnknownHandler
+import redis.handler.commands.XaddHandler
 import redis.handler.postHandlers.PsyncPostHandler
 
 import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import redis.handler.commands.TypeHandler
-import redis.handler.commands.XaddHandler
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -46,7 +46,7 @@ object Handler:
     "info" -> InfoHandler,
     "psync" -> PsyncHandler,
     "type" -> TypeHandler,
-    "xadd" -> XaddHandler,
+    "xadd" -> XaddHandler
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(

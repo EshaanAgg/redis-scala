@@ -1,13 +1,14 @@
 package redis.handler.commands
 
+import redis.Entry
+import redis.StreamStore
 import redis.formats.RESPData
+import redis.formats.RESPData.BulkString
 import redis.handler.Handler
 
 import scala.util.Failure
+import scala.util.Success
 import scala.util.Try
-import redis.Entry
-import redis.StreamStore
-import redis.formats.RESPData.BulkString
 
 object XaddHandler extends Handler:
   def handle(args: Array[String]): Try[RESPData] =
@@ -19,7 +20,10 @@ object XaddHandler extends Handler:
       )
     else
       val streamName = args(1)
-      Entry(args.drop(2)).map { entry =>
-        StreamStore.addEntryToStream(streamName, entry)
-        BulkString(entry.id.toString)
-      }
+      Success(
+        Entry(args.drop(1)) match
+          case Left(err) => RESPData.Error(err)
+          case Right(entry) =>
+            StreamStore.addEntryToStream(streamName, entry)
+            BulkString(entry.id.toString)
+      )
