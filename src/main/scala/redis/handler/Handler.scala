@@ -21,6 +21,8 @@ import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import redis.handler.commands.TypeHandler
+import redis.handler.commands.XaddHandler
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -42,7 +44,9 @@ object Handler:
     "config" -> ConfigHandler,
     "keys" -> KeysHandler,
     "info" -> InfoHandler,
-    "psync" -> PsyncHandler
+    "psync" -> PsyncHandler,
+    "type" -> TypeHandler,
+    "xadd" -> XaddHandler,
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
