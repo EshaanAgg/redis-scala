@@ -6,6 +6,7 @@ import redis.formats.RESPData
 import java.time.Instant
 import java.util.UUID
 import scala.collection.concurrent.TrieMap
+import scala.util.Try
 
 case class StoreVal(data: RESPData, exp: Option[Instant]):
   def isDefined: Boolean =
@@ -20,7 +21,8 @@ object ServerState:
   var port: Int = 6379
   var role: Role = Role.Master(
     UUID.randomUUID().toString.replace("-", ""),
-    0L
+    0L,
+    Array.empty[Int]
   )
 
   /** Updates the server state at startup from the map of options provided by
@@ -51,7 +53,12 @@ object ServerState:
     if rdbFileResult.isDefined then
       println(s"Error loading RDB file: ${rdbFileResult.get}")
 
-    role.performHandshake
+    val handshake = Try {
+      role.performHandshake
+    }
+    if handshake.isFailure then
+      println(s"[Handshake] Failed: ${handshake.failed.get.getMessage}")
+    else println("[Handshake] Completed successfully")
 
   /** Adds a new member to persistent storage
     * @param k

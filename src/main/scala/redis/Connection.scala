@@ -37,14 +37,23 @@ class Connection(val host: String, val port: Int):
   def sendAndExpectResponse(toSend: RESPData, expect: RESPData): Unit =
     sendBytes(toSend.getBytes)
     val in = connection.getInputStream
-    val response = RESPData(in)
-    if response != expect then
-      throw new Exception(s"Expected response: $expect, but got: $response")
+    RESPData(in) match
+      case Success(v) =>
+        if v != expect then
+          throw new Exception(
+            s"Sent data ($toSend), but expected response $expect, got $v"
+          )
+      case Failure(ex) =>
+        throw new Exception(
+          s"Sent data ($toString), but failed to read response: ${ex.getMessage}"
+        )
 
   def sendAndGetResponse(toSend: RESPData): RESPData =
     sendBytes(toSend.getBytes)
     val in = connection.getInputStream
     RESPData(in) match
       case Failure(ex) =>
-        throw new Exception(s"Error reading response: ${ex.getMessage}")
+        throw new Exception(
+          s"Failed to read response for $toSend: ${ex.getMessage}"
+        )
       case Success(v) => v

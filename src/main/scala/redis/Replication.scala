@@ -4,11 +4,17 @@ import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
 import redis.formats.RESPData.SimpleString
 
+import scala.collection.mutable.ArraySeq
+
 sealed trait Role:
   def performHandshake: Unit
 
 object Role:
-  case class Master(replID: String, replOffset: Long) extends Role:
+  case class Master(
+      replID: String,
+      replOffset: Long,
+      replicas: ArraySeq[Int]
+  ) extends Role:
     override def performHandshake: Unit =
       println(
         s"[Handshake] Master role with replID: $replID and replOffset: $replOffset"
@@ -70,7 +76,7 @@ object Role:
 
   def getInfoEntries(role: Role): Seq[(String, String)] =
     role match
-      case Master(replID, replOffset) =>
+      case Master(replID, replOffset, _) =>
         Seq(
           "role" -> "master",
           "master_replid" -> replID,

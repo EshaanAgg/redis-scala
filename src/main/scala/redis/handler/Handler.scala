@@ -7,6 +7,8 @@ import redis.handler.commands.GetHandler
 import redis.handler.commands.InfoHandler
 import redis.handler.commands.KeysHandler
 import redis.handler.commands.PingHandler
+import redis.handler.commands.PsyncHandler
+import redis.handler.commands.ReplconfHandler
 import redis.handler.commands.SetHandler
 import redis.handler.commands.UnknownHandler
 
@@ -25,14 +27,16 @@ object Handler:
       .getCommand(in)
       .flatMap(cmd =>
         val h = cmd(0).toLowerCase() match
-          case "ping"   => PingHandler
-          case "echo"   => EchoHandler
-          case "set"    => SetHandler
-          case "get"    => GetHandler
-          case "config" => ConfigHandler
-          case "keys"   => KeysHandler
-          case "info"   => InfoHandler
-          case _        => UnknownHandler
+          case "ping"     => PingHandler
+          case "echo"     => EchoHandler
+          case "set"      => SetHandler
+          case "get"      => GetHandler
+          case "config"   => ConfigHandler
+          case "keys"     => KeysHandler
+          case "info"     => InfoHandler
+          case "replconf" => ReplconfHandler
+          case "psync"    => PsyncHandler
+          case _          => UnknownHandler
 
         h.handle(cmd).map(_.getBytes)
       )
