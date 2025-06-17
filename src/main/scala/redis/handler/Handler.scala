@@ -111,6 +111,7 @@ object Handler:
     */
   private def process(conn: Connection): Unit =
     val in = conn.inputStream
+
     Parser.getCommand(in) match
       case Success(args) =>
         if args.nonEmpty then

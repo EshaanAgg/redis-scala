@@ -28,9 +28,8 @@ object Role:
     var masterReplID: String = "?"
     var masterReplOffset: Long = -1L
 
-    val conn = new Connection(masterHost, masterPort)
-    conn.isMasterConnection = true
-    Future(Handler.connHandler(conn)) // Register a handler for this
+    val conn: Connection = Connection(masterHost, masterPort, true)
+    Future(Handler.connHandler(conn)) // Register a handler for connection
 
     override def performHandshake: Unit =
       // Step 1: Send a PING message to verify connection

@@ -33,6 +33,7 @@ object ReplconfHandler extends HandlerWithConnection:
         // Handle listening-port command
         else if args(1).toLowerCase == "listening-port"
         then
+          println(s"[Registered Replica] :${args(2)}")
           replicas :+ conn
           Success(SimpleString("OK"))
 

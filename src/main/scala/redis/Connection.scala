@@ -8,18 +8,14 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-class Connection(val host: String, val port: Int):
-  private var conn: Option[Socket] = None
-  var isMasterConnection = true
-
-  def connection: Socket =
-    if conn.isEmpty then conn = Some(new Socket(host, port))
-    conn.get
-
+case class Connection(
+    val host: String,
+    val port: Int,
+    val conn: Socket,
+    val isMasterConnection: Boolean
+):
   def disconnect: Unit =
-    if conn.isDefined then
-      conn.get.close()
-      conn = None
+    conn.close()
 
   /** Sends a byte array to the connection's output stream.
     * @param bytes
@@ -27,7 +23,7 @@ class Connection(val host: String, val port: Int):
     */
   def sendBytes(bytes: Array[Byte]): Unit =
     Try {
-      val out = connection.getOutputStream
+      val out = conn.getOutputStream
       out.write(bytes)
       out.flush()
     } recover { case e: Exception =>
@@ -37,7 +33,7 @@ class Connection(val host: String, val port: Int):
 
   def sendAndExpectResponse(toSend: RESPData, expect: RESPData): Unit =
     sendBytes(toSend.getBytes)
-    val in = connection.getInputStream
+    val in = conn.getInputStream
     RESPData(in) match
       case Success(v) =>
         if v != expect then
@@ -51,7 +47,7 @@ class Connection(val host: String, val port: Int):
 
   def sendAndGetResponse(toSend: RESPData): RESPData =
     sendBytes(toSend.getBytes)
-    val in = connection.getInputStream
+    val in = conn.getInputStream
     RESPData(in) match
       case Failure(ex) =>
         throw new Exception(
@@ -59,11 +55,10 @@ class Connection(val host: String, val port: Int):
         )
       case Success(v) => v
 
-  def isClosed: Boolean = conn.isEmpty || conn.get.isClosed
+  def isClosed: Boolean = conn.isClosed
 
   def inputStream: InputStream =
-    if conn.isEmpty then throw new Exception("Connection is not established")
-    conn.get.getInputStream
+    conn.getInputStream
 
   def sendData(data: RESPData): Unit =
     sendBytes(data.getBytes)
@@ -80,6 +75,12 @@ class Connection(val host: String, val port: Int):
 
 object Connection:
   def apply(socket: Socket): Connection =
-    val conn = new Connection(socket.getInetAddress.getHostName, socket.getPort)
-    conn.conn = Some(socket)
-    conn
+    Connection(socket.getInetAddress.getHostName, socket.getPort, socket, false)
+
+  def apply(
+      host: String,
+      port: Int,
+      isMasterConnection: Boolean = false
+  ): Connection =
+    val socket = new Socket(host, port)
+    Connection(host, port, socket, isMasterConnection)
