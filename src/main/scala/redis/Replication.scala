@@ -13,7 +13,7 @@ object Role:
   case class Master(
       replID: String,
       replOffset: Long,
-      replicas: ArraySeq[Int]
+      replicas: ArraySeq[Connection]
   ) extends Role:
     override def performHandshake: Unit =
       println(
@@ -25,7 +25,7 @@ object Role:
     var masterReplOffset: Long = -1L
 
     override def performHandshake: Unit =
-      val conn = Connection(masterHost, masterPort)
+      val conn = new Connection(masterHost, masterPort)
 
       // Step 1: Send a PING message to verify connection
       conn.sendAndExpectResponse(

@@ -1,18 +1,19 @@
 package redis.handler.commands
 
+import redis.Connection
 import redis.Role.Master
 import redis.Role.Slave
 import redis.ServerState
 import redis.formats.RESPData
 import redis.formats.RESPData.SimpleString
-import redis.handler.Handler
+import redis.handler.HandlerWithConnection
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-object ReplconfHandler extends Handler:
-  def handle(args: Array[String]): Try[RESPData] =
+object ReplconfHandler extends HandlerWithConnection:
+  def handle(args: Array[String], conn: Connection): Try[RESPData] =
     ServerState.role match
       case Slave(_, _) =>
         Failure(
@@ -21,23 +22,25 @@ object ReplconfHandler extends Handler:
           )
         )
       case Master(_, _, replicas) =>
-        if args.length != 3
+        if args.length < 3
         then
           Failure(
             IllegalArgumentException(
-              s"Expected 3 arguments to 'REPLCONF', received ${args.mkString("Array(", ",", ")")}"
+              s"Expected atleast 3 arguments to 'REPLCONF', received ${args.mkString("Array(", ",", ")")}"
             )
           )
 
         // Handle listening-port command
         else if args(1).toLowerCase == "listening-port"
         then
-          replicas :+ args(2).toInt
+          replicas :+ conn
           Success(SimpleString("OK"))
 
         // Handle capa command
-        else if args(1).toLowerCase == "capa" && args(2).toLowerCase == "psync2"
-        then Success(SimpleString("OK"))
+        else if args(1).toLowerCase == "capa"
+        then
+          println(s"[Replica Capabilites] ${args.drop(2).mkString(",")}")
+          Success(SimpleString("OK"))
 
         // Handle unknown commands
         else

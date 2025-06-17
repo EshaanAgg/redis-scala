@@ -2,6 +2,7 @@ package redis
 
 import redis.formats.RESPData
 
+import java.io.InputStream
 import java.net.Socket
 import scala.util.Failure
 import scala.util.Success
@@ -57,3 +58,18 @@ class Connection(val host: String, val port: Int):
           s"Failed to read response for $toSend: ${ex.getMessage}"
         )
       case Success(v) => v
+
+  def isClosed: Boolean = conn.isEmpty || conn.get.isClosed
+
+  def inputStream: InputStream =
+    if conn.isEmpty then throw new Exception("Connection is not established")
+    conn.get.getInputStream
+
+  def sendData(data: RESPData): Unit =
+    sendBytes(data.getBytes)
+
+object Connection:
+  def apply(socket: Socket): Connection =
+    val conn = new Connection(socket.getInetAddress.getHostName, socket.getPort)
+    conn.conn = Some(socket)
+    conn
