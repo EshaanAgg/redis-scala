@@ -13,25 +13,6 @@ case class StoreVal(data: RESPData, exp: Option[Instant]):
 
   def isEmpty: Boolean = !isDefined
 
-sealed trait Role
-
-object Role:
-  case class Master(replID: String, replOffset: Long) extends Role
-  case class Slave(masterHost: String, masterPort: Int) extends Role
-
-  def getInfoEntries(role: Role): Seq[(String, String)] =
-    role match
-      case Master(replID, replOffset) =>
-        Seq(
-          "role" -> "master",
-          "master_replid" -> replID,
-          "master_repl_offset" -> replOffset.toString
-        )
-      case Slave(masterHost, masterPort) =>
-        Seq(
-          "role" -> "slave"
-        )
-
 object ServerState:
   private val store: TrieMap[String, StoreVal] = new TrieMap()
   var dir: String = "./sample"
@@ -69,6 +50,8 @@ object ServerState:
     val rdbFileResult = RDBFile.loadFile(s"$dir/$dbFile")
     if rdbFileResult.isDefined then
       println(s"Error loading RDB file: ${rdbFileResult.get}")
+
+    role.performHandshake
 
   /** Adds a new member to persistent storage
     * @param k
