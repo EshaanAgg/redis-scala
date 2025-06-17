@@ -16,7 +16,10 @@ object ArgsParser:
       args match
         case Nil => map
         case key :: value :: next if recognizedOptions.contains(key) =>
-          getNextOption(map ++ Map(key.stripPrefix("--") -> value), next)
+          getNextOption(
+            map ++ Map(key.stripPrefix("--") -> value),
+            next
+          )
         case args => throw Exception(s"Malformed arguments: $args")
 
     getNextOption(Map(), args.toList)

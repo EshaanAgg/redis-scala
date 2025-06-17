@@ -93,7 +93,12 @@ case class Connection(
 
 object Connection:
   def apply(socket: Socket): Connection =
-    Connection(socket.getInetAddress.getHostName, socket.getPort, socket, false)
+    Connection(
+      socket.getInetAddress.getHostName,
+      socket.getPort,
+      socket,
+      false
+    )
 
   def apply(
       host: String,

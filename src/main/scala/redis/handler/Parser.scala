@@ -24,7 +24,9 @@ object Parser:
           case RESPData.Array(arr) =>
             arr match
               case None =>
-                throw new ParserException("Received empty array as command")
+                throw new ParserException(
+                  "Received empty array as command"
+                )
               case Some(arr) =>
                 Success(
                   arr.map {

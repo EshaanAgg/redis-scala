@@ -75,7 +75,9 @@ object Role:
             )
           else throw new Exception(s"Invalid FULLRESYNC response: $s")
         case _ =>
-          throw new Exception(s"Unexpected response from PSYNC: $resp")
+          throw new Exception(
+            s"Unexpected response from PSYNC: $resp"
+          )
 
       // Step 4: Should recieve a RDB file from the master
       val rdbBytes = conn.getBytes

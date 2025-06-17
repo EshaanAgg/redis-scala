@@ -12,20 +12,20 @@ case class EntryID(msTime: Long, seq: Long):
   def getRESP: RESPData =
     BulkString(this.toString)
 
-  def > (other: EntryID): Boolean =
+  def >(other: EntryID): Boolean =
     if this.msTime > other.msTime then true
     else if this.msTime == other.msTime then this.seq > other.seq
     else false
-  
-  def < (other: EntryID): Boolean =
+
+  def <(other: EntryID): Boolean =
     if this.msTime < other.msTime then true
     else if this.msTime == other.msTime then this.seq < other.seq
     else false
-  
-  def <= (other: EntryID): Boolean =
+
+  def <=(other: EntryID): Boolean =
     this < other || this == other
 
-  def >= (other: EntryID): Boolean =
+  def >=(other: EntryID): Boolean =
     this > other || this == other
 
 object EntryID:
@@ -79,37 +79,38 @@ object EntryID:
   def forRange(id: String): EntryID =
     val parts = id.split("-")
     if parts.length != 2
-      then EntryID(id.toLong, 0) // Default ID for range queries
-      else EntryID(parts(0).toLong, parts(1).toLong)
+    then EntryID(id.toLong, 0) // Default ID for range queries
+    else EntryID(parts(0).toLong, parts(1).toLong)
 
 case class Entry(id: EntryID, data: Map[String, String]):
-    def getResp: RESPData = 
-        RESPData.Array(
-            id.getRESP,
-            RESPData.Array(
-                data.flatMap((k, v) => List(k, v)).map(RESPData.BulkString(_)).toList
-            )
-        )
+  def getResp: RESPData =
+    RESPData.Array(
+      id.getRESP,
+      RESPData.Array(
+        data
+          .flatMap((k, v) => List(k, v))
+          .map(RESPData.BulkString(_))
+          .toList
+      )
+    )
 
 object Entry:
   def apply(args: Array[String]): Either[String, Entry] =
     println(s"Creating entry from args: ${args.mkString(", ")}")
-    EntryID(args(0), args(1)).map(
-        id => {
-            val data = args
-            .drop(2)
-            .grouped(2)
-            .map(p => (p(0), p(1)))
-            .toMap
-            Entry(id, data)
-        }
-    )
-    
+    EntryID(args(0), args(1)).map(id => {
+      val data = args
+        .drop(2)
+        .grouped(2)
+        .map(p => (p(0), p(1)))
+        .toMap
+      Entry(id, data)
+    })
 
 type StreamData = List[Entry]
 
 object StreamStore:
-  private val streams: TreeMap[String, StreamData] = TreeMap[String, StreamData]()
+  private val streams: TreeMap[String, StreamData] =
+    TreeMap[String, StreamData]()
 
   /** Creates a new stream with the given name if it does not already exist.
     * Throws an exception if the stream already exists.
@@ -142,7 +143,7 @@ object StreamStore:
 
   def getStream(name: String): Option[StreamData] =
     streams.get(name)
-  
+
   def firstEntry(name: String): Option[EntryID] =
     streams.get(name) match
       case Some(entries) if entries.nonEmpty =>

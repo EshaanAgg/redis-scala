@@ -21,7 +21,9 @@ object ConfigHandler extends Handler:
           s"Expected 3 arguments to 'CONFIG', received ${args.mkString("Array(", ", ", ")")}"
         )
       )
-    else if args(1).toUpperCase != "GET" || !supportedConfigs.contains(args(2))
+    else if args(1).toUpperCase != "GET" || !supportedConfigs.contains(
+        args(2)
+      )
     then
       Failure(
         IllegalArgumentException(
@@ -41,6 +43,7 @@ object ConfigHandler extends Handler:
               BulkString("dbfilename"),
               BulkString(ServerState.dbFile)
             )
-          case _ => throw Exception("unreachable code in ConfigHandler")
+          case _ =>
+            throw Exception("unreachable code in ConfigHandler")
         }
       }

@@ -57,7 +57,9 @@ object RDBFile:
             case -63 => 2 // 0xC1
             case -62 => 4 // 0xC2
             case _ =>
-              throw new DecoderException(s"Unsupported string length: $len")
+              throw new DecoderException(
+                s"Unsupported string length: $len"
+              )
 
           d.readNBytes(bufLen)
             .map(Convert.getLENumber(_).toString)
@@ -108,7 +110,10 @@ object RDBFile:
           .flatMap(expBytes => {
             val exp = Convert.getLENumber(expBytes)
             readRecord.map((key, value) =>
-              key -> StoreVal(value.data, Some(Instant.ofEpochMilli(exp)))
+              key -> StoreVal(
+                value.data,
+                Some(Instant.ofEpochMilli(exp))
+              )
             )
           })
       }
@@ -119,7 +124,10 @@ object RDBFile:
           .flatMap(expBytes => {
             val exp = Convert.getLENumber(expBytes)
             readRecord.map((key, value) =>
-              key -> StoreVal(value.data, Some(Instant.ofEpochSecond(exp)))
+              key -> StoreVal(
+                value.data,
+                Some(Instant.ofEpochSecond(exp))
+              )
             )
           })
       }
@@ -158,7 +166,9 @@ object RDBFile:
                 )
               )
             else
-              println(s"[Database Section] Total Records: $tot, Expiry: $exp")
+              println(
+                s"[Database Section] Total Records: $tot, Expiry: $exp"
+              )
               Success(records)
           })
         }
@@ -175,19 +185,24 @@ object RDBFile:
     File
       .getStream(filePath)
       .flatMap(s =>
-        println("Found a database dump. Using it to initialize the database...")
+        println(
+          "Found a database dump. Using it to initialize the database..."
+        )
         val d = Decoder(s)
 
         readHeaderSection(d) match
           case Some(err) => Some(err) // Header section error
           case None =>
             readMetadata(d) match
-              case Failure(ex) => Some(ex.toString) // Metadata reading error
+              case Failure(ex) =>
+                Some(ex.toString) // Metadata reading error
               case Success(metadata) =>
                 metadata.foreach((k, v) => println(s"[Metadata] $k -> $v"))
                 readDatabaseSection(d) match
                   case Failure(ex) =>
-                    Some(ex.toString) // Database section error
+                    Some(
+                      ex.toString
+                    ) // Database section error
                   case Success(records) =>
                     records.foreach((k, v) => ServerState.addKey(k, v))
                     None // No errors, return None

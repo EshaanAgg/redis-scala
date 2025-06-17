@@ -20,7 +20,8 @@ object InfoHandler extends Handler:
         )
       )
     else
-      val kvPairs: Seq[(String, String)] = Role.getInfoEntries(ServerState.role)
+      val kvPairs: Seq[(String, String)] =
+        Role.getInfoEntries(ServerState.role)
 
       Success(
         BulkString(

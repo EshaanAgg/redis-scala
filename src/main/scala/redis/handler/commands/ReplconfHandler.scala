@@ -40,7 +40,9 @@ object ReplconfHandler extends HandlerWithConnection:
         // Handle capa command
         else if args(1).toLowerCase == "capa"
         then
-          println(s"[Replica Capabilites] ${args.drop(2).mkString(",")}")
+          println(
+            s"[Replica Capabilites] ${args.drop(2).mkString(",")}"
+          )
           Success(SimpleString("OK"))
 
         // Handle unknown commands

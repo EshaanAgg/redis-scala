@@ -1,5 +1,6 @@
 package redis.handler.commands
 
+import redis.EntryID
 import redis.StreamStore
 import redis.formats.RESPData
 import redis.handler.Handler
@@ -7,7 +8,6 @@ import redis.handler.Handler
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import redis.EntryID
 
 object XrangeHandler extends Handler:
   def handle(args: Array[String]): Try[RESPData] =
@@ -23,16 +23,18 @@ object XrangeHandler extends Handler:
         if args(2) == "-" then "0-0" else args(2)
       )
 
-      val endKey = if args(3) == "+" 
+      val endKey =
+        if args(3) == "+"
         then StreamStore.lastEntry(streamName).getOrElse(EntryID(0, 0))
         else EntryID.forRange(args(3))
 
       Success(
         RESPData.Array(
-          StreamStore.getStream(streamName).getOrElse(List()).filter(entry => 
-            entry.id >= startKey && entry.id <= endKey
-          ).map(_.getResp).toList
+          StreamStore
+            .getStream(streamName)
+            .getOrElse(List())
+            .filter(entry => entry.id >= startKey && entry.id <= endKey)
+            .map(_.getResp)
+            .toList
         )
       )
-
-      

@@ -40,7 +40,9 @@ object RESPData:
         Failure(DecoderException(s"Unrecognized RESP type marker '$x'"))
       case None =>
         Failure(
-          DecoderException("Unexpected end of stream while reading RESP data")
+          DecoderException(
+            "Unexpected end of stream while reading RESP data"
+          )
         )
 
   case class SimpleString(str: String) extends RESPData:
@@ -74,8 +76,9 @@ object RESPData:
         case None => "*-1\r\n"
 
     override def toString: String = arr match
-      case Some(arr) => s"Arr${arr.map(_.toString).mkString("(", ", ", ")")}"
-      case None      => "Arr(NULL)"
+      case Some(arr) =>
+        s"Arr${arr.map(_.toString).mkString("(", ", ", ")")}"
+      case None => "Arr(NULL)"
 
   case class Boolean(b: scala.Boolean) extends RESPData:
     def encode: String = s"#${if b then 't' else 'f'}\r\n"
@@ -155,7 +158,9 @@ object RESPData:
             case "t" => Success(True)
             case x =>
               Failure(
-                DecoderException(s"Unexpected value '$x' for Boolean type")
+                DecoderException(
+                  s"Unexpected value '$x' for Boolean type"
+                )
               )
           }
         )

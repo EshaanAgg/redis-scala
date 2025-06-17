@@ -17,13 +17,13 @@ import redis.handler.commands.SetHandler
 import redis.handler.commands.TypeHandler
 import redis.handler.commands.UnknownHandler
 import redis.handler.commands.XaddHandler
+import redis.handler.commands.XrangeHandler
 import redis.handler.postHandlers.PsyncPostHandler
 
 import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import redis.handler.commands.XrangeHandler
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -48,7 +48,7 @@ object Handler:
     "psync" -> PsyncHandler,
     "type" -> TypeHandler,
     "xadd" -> XaddHandler,
-    "xrange" -> XrangeHandler,
+    "xrange" -> XrangeHandler
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
