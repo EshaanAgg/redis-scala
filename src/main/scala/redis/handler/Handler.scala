@@ -5,21 +5,8 @@ import redis.ServerState
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
-import redis.handler.commands.ConfigHandler
-import redis.handler.commands.EchoHandler
-import redis.handler.commands.GetHandler
-import redis.handler.commands.InfoHandler
-import redis.handler.commands.KeysHandler
-import redis.handler.commands.PingHandler
-import redis.handler.commands.PsyncHandler
-import redis.handler.commands.ReplconfHandler
-import redis.handler.commands.SetHandler
-import redis.handler.commands.TypeHandler
-import redis.handler.commands.UnknownHandler
-import redis.handler.commands.XaddHandler
-import redis.handler.commands.XrangeHandler
-import redis.handler.commands.XreadHandler
-import redis.handler.postHandlers.PsyncPostHandler
+import redis.handler.commands as cmd
+import redis.handler.postHandlers as postCmd
 
 import java.io.InputStream
 import java.time.Instant
@@ -40,26 +27,27 @@ object Handler:
   val writeCommands: Set[String] = Set("SET", "INCR", "XADD")
 
   val handlerMap: Map[String, Handler] = Map(
-    "ping" -> PingHandler,
-    "echo" -> EchoHandler,
-    "set" -> SetHandler,
-    "get" -> GetHandler,
-    "config" -> ConfigHandler,
-    "keys" -> KeysHandler,
-    "info" -> InfoHandler,
-    "psync" -> PsyncHandler,
-    "type" -> TypeHandler,
-    "xadd" -> XaddHandler,
-    "xrange" -> XrangeHandler,
-    "xread" -> XreadHandler
+    "ping" -> cmd.PingHandler,
+    "echo" -> cmd.EchoHandler,
+    "set" -> cmd.SetHandler,
+    "get" -> cmd.GetHandler,
+    "config" -> cmd.ConfigHandler,
+    "keys" -> cmd.KeysHandler,
+    "info" -> cmd.InfoHandler,
+    "psync" -> cmd.PsyncHandler,
+    "type" -> cmd.TypeHandler,
+    "xadd" -> cmd.XaddHandler,
+    "xrange" -> cmd.XrangeHandler,
+    "xread" -> cmd.XreadHandler,
+    "incr" -> cmd.IncrHandler
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
-    "replconf" -> ReplconfHandler
+    "replconf" -> cmd.ReplconfHandler
   )
 
   val postMessageHandlers: Map[String, PostMessageHandler] = Map(
-    "psync" -> PsyncPostHandler
+    "psync" -> postCmd.PsyncPostHandler
   )
 
   /** Processes the command received from the client connection, and sends the
@@ -79,7 +67,7 @@ object Handler:
         handlerMap(x.toLowerCase).handle(args)
       case x if handlerWithConnectionMap.contains(x.toLowerCase) =>
         handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
-      case _ => UnknownHandler.handle(args)
+      case _ => cmd.UnknownHandler.handle(args)
 
     if conn.shouldSendCommandResult(args) then
       conn.sendData(

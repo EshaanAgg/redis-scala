@@ -3,7 +3,6 @@ package redis.handler.commands
 import redis.ServerState
 import redis.StoreVal
 import redis.formats.RESPData
-import redis.formats.RESPData.BulkString
 import redis.handler.Handler
 
 import java.time.Instant
@@ -22,11 +21,10 @@ object SetHandler extends Handler:
       )
     else
       val key = args(1)
-      val data = BulkString(args(2))
       val expiry =
         if args.length == 5
         then Some(Instant.now().plusMillis(args(4).toInt))
         else None
 
-      ServerState.addKey(key, StoreVal(data, expiry))
+      ServerState.addKey(key, StoreVal(args(2), expiry))
       Success(RESPData.SimpleString("OK"))

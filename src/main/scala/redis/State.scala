@@ -1,7 +1,6 @@
 package redis
 
 import redis.formats.RDBFile
-import redis.formats.RESPData
 
 import java.time.Instant
 import java.util.UUID
@@ -9,7 +8,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
-case class StoreVal(data: RESPData, exp: Option[Instant]):
+case class StoreVal(data: String, exp: Option[Instant]):
   def isDefined: Boolean =
     exp.isEmpty || exp.get.isAfter(Instant.now())
 
@@ -96,6 +95,28 @@ object ServerState:
           None
         else Some(v)
       )
+
+  /** Increments the value of the key by 1 if it is an integer. If the key does
+    * not exist, it initializes it to 1. Returns an error otherwise.
+    *
+    * @param k
+    *   The key to increment
+    * @return
+    *   Either[String, Int] - Returns the new value if successful, or an error
+    *   message
+    */
+  def incr(k: String): Either[String, Int] =
+    store.get(k) match
+      // If the key exists and is an integer, increment it by 1
+      case Some(StoreVal(v, _)) if v.forall(_.isDigit) =>
+        val newValue = v.toInt + 1
+        store.update(k, StoreVal(newValue.toString, None))
+        Right(newValue)
+      // If the key does not exist, create it with value "1"
+      case None =>
+        addKey(k, StoreVal("1", None))
+        Right(1)
+      case _ => Left("ERR value is not an integer or out of range")
 
   /** Returns all the keys stored in the database currently. Filters out the
     * expired keys.

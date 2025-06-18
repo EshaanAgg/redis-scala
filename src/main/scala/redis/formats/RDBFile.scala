@@ -2,7 +2,6 @@ package redis.formats
 
 import redis.ServerState
 import redis.StoreVal
-import redis.formats.RESPData.BulkString
 import redis.utils.Convert
 import redis.utils.File
 
@@ -101,7 +100,7 @@ object RDBFile:
         for {
           key <- d.readString
           value <- d.readString
-        } yield (key, StoreVal(BulkString(value), None))
+        } yield (key, StoreVal(value, None))
       }
 
     def readRecordWithMSExpiry: Try[DBRecord] =
