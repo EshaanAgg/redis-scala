@@ -28,13 +28,17 @@ object XrangeHandler extends Handler:
         then StreamStore.lastEntry(streamName).getOrElse(EntryID(0, 0))
         else EntryID.forRange(args(3))
 
-      Success(
-        RESPData.Array(
-          StreamStore
-            .getStream(streamName)
-            .getOrElse(List())
-            .filter(entry => entry.id >= startKey && entry.id <= endKey)
-            .map(_.getResp)
-            .toList
-        )
-      )
+      StreamStore.getStream(streamName) match
+        case Some(entries) =>
+          Success(
+            RESPData.Array(
+              entries
+                .filter(entry => entry.id >= startKey && entry.id <= endKey)
+                .map(_.getResp)
+                .toList
+            )
+          )
+        case None =>
+          Failure(
+            new IllegalArgumentException(s"Stream '$streamName' does not exist")
+          )

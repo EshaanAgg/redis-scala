@@ -18,6 +18,7 @@ import redis.handler.commands.TypeHandler
 import redis.handler.commands.UnknownHandler
 import redis.handler.commands.XaddHandler
 import redis.handler.commands.XrangeHandler
+import redis.handler.commands.XreadHandler
 import redis.handler.postHandlers.PsyncPostHandler
 
 import java.io.InputStream
@@ -48,7 +49,8 @@ object Handler:
     "psync" -> PsyncHandler,
     "type" -> TypeHandler,
     "xadd" -> XaddHandler,
-    "xrange" -> XrangeHandler
+    "xrange" -> XrangeHandler,
+    "xread" -> XreadHandler
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
