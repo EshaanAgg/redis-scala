@@ -92,14 +92,17 @@ object XreadHandler extends Handler:
         getStreamResultWithBlocking(_)
       )
       .map(streams =>
-        RESPData.Array(
-          streams.map((streamName, entries) =>
-            RESPData.Array(
-              RESPData.BulkString(streamName),
-              RESPData.Array(entries.map(_.getResp))
+        // If any of the streams's entries are empty, return a nil response
+        if streams.exists(_._2.isEmpty) then RESPData.BulkString.Null
+        else
+          RESPData.Array(
+            streams.map((streamName, entries) =>
+              RESPData.Array(
+                RESPData.BulkString(streamName),
+                RESPData.Array(entries.map(_.getResp))
+              )
             )
           )
-        )
       )
 
   /** Retrieves entries from the specified stream that have an ID greater than

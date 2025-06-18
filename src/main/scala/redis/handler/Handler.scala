@@ -22,6 +22,7 @@ import redis.handler.commands.XreadHandler
 import redis.handler.postHandlers.PsyncPostHandler
 
 import java.io.InputStream
+import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -70,7 +71,9 @@ object Handler:
     *   Connection object representing the client connection.
     */
   private def sendResponse(args: Array[String], conn: Connection): Boolean =
-    println(s"Received command: ${args.mkString("(", ", ", ")")}")
+    println(
+      s"[:${conn.port}] [${Instant.now().toEpochMilli()}] ${args.mkString("(", ", ", ")")}"
+    )
     val response = args(0) match
       case x if handlerMap.contains(x.toLowerCase) =>
         handlerMap(x.toLowerCase).handle(args)

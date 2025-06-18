@@ -89,6 +89,8 @@ object RESPData:
       d.expectByte('+').flatMap(_ => d.readString.map(SimpleString(_)))
 
   object BulkString:
+    object Null extends BulkString(None)
+
     def apply(d: Decoder): Try[BulkString] =
       d.expectByte('$')
         .flatMap(_ =>

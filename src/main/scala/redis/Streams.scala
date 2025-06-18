@@ -96,7 +96,6 @@ case class Entry(id: EntryID, data: Map[String, String]):
 
 object Entry:
   def apply(args: Array[String]): Either[String, Entry] =
-    println(s"Creating entry from args: ${args.mkString(", ")}")
     EntryID(args(0), args(1)).map(id => {
       val data = args
         .drop(2)
