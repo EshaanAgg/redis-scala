@@ -55,7 +55,7 @@ case class Connection(
           )
       case Failure(ex) =>
         throw new Exception(
-          s"Sent data ($toString), but failed to read response: ${ex.getMessage}"
+          s"Sent data ($toSend), but failed to read response: ${ex.getMessage}"
         )
 
   def sendAndGetResponse(toSend: RESPData): RESPData =
@@ -87,7 +87,7 @@ case class Connection(
       try while !isClosed do Handler.connectionHandler(in, this)
       catch
         case e: Exception =>
-          println(s"Error in input handler: ${e.getMessage}")
+          println(s"[:${port}] Unexpected error: ${e.getMessage}")
           disconnect
     ).start()
 

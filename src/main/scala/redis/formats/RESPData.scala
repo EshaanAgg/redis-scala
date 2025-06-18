@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.io.IOException
 
 sealed trait RESPData:
   def encode: String
@@ -40,9 +41,7 @@ object RESPData:
         Failure(DecoderException(s"Unrecognized RESP type marker '$x'"))
       case None =>
         Failure(
-          DecoderException(
-            "Unexpected end of stream while reading RESP data"
-          )
+          IOException("End of stream reached")
         )
 
   case class SimpleString(str: String) extends RESPData:

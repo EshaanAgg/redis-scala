@@ -6,6 +6,7 @@ import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.io.IOException
 
 class ParserException(message: String, cause: Throwable = null)
     extends Exception(message, cause):
@@ -18,7 +19,10 @@ object Parser:
   def getCommand(in: InputStream): Try[Array[String]] =
     RESPData(in) match
       case Failure(err) =>
-        throw new ParserException("Failed to serialize command", err)
+        if err.isInstanceOf[IOException] then
+          Failure(err)
+        else
+          Failure(new ParserException("Failed to parse RESP data", err))
       case Success(v) =>
         v match
           case RESPData.Array(arr) =>

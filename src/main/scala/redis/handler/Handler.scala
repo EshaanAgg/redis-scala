@@ -13,6 +13,7 @@ import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+import java.io.IOException
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -115,5 +116,9 @@ object Handler:
           if sendResponse(args, conn)
           then postMessage(args, conn)
       case Failure(err) =>
-        val errorMessage = RESPData.Error(err.toString)
-        conn.sendBytes(errorMessage.getBytes)
+        if err.isInstanceOf[IOException] then 
+          println(s"[:${conn.port}] Connection closed")
+          conn.disconnect
+        else
+          println(s"[:${conn.port}] Error processing command: ${err.getMessage}")
+          conn.sendData(RESPData.Error(err.getMessage))
