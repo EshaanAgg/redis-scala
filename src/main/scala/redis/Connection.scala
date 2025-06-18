@@ -4,6 +4,7 @@ import redis.formats.RESPData
 import redis.handler.Handler
 
 import java.net.Socket
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -17,9 +18,14 @@ case class Connection(
   val in = conn.getInputStream
   val out = conn.getOutputStream
 
+  var inTransaction: Boolean = false
+  val queuedCommands: ArrayBuffer[Array[String]] = ArrayBuffer()
+
   def disconnect: Unit =
     conn.close()
 
+  /** Read incoming bytes from the connection.
+    */
   def getBytes: Array[Byte] =
     Try {
       val buffer = new Array[Byte](1024)

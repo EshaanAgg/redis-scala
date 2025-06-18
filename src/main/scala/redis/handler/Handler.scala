@@ -8,12 +8,12 @@ import redis.formats.RESPData.BulkString
 import redis.handler.commands as cmd
 import redis.handler.postHandlers as postCmd
 
+import java.io.IOException
 import java.io.InputStream
 import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import java.io.IOException
 
 trait Handler:
   def handle(args: Array[String]): Try[RESPData]
@@ -44,12 +44,29 @@ object Handler:
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
-    "replconf" -> cmd.ReplconfHandler
+    "replconf" -> cmd.ReplconfHandler,
+    "discard" -> cmd.DiscardHandler,
+    "multi" -> cmd.MultiHandler,
+    "exec" -> cmd.ExecHandler
   )
 
   val postMessageHandlers: Map[String, PostMessageHandler] = Map(
     "psync" -> postCmd.PsyncPostHandler
   )
+
+  val transactionEndingCommands: Set[String] = Set("EXEC", "DISCARD")
+
+  private def inTransactionHandler(
+      args: Array[String],
+      conn: Connection
+  ): Try[RESPData] =
+    // If the transaction is ending, dispatch the correct handler
+    if transactionEndingCommands.contains(args(0).toUpperCase)
+    then handlerWithConnectionMap(args(0).toLowerCase).handle(args, conn)
+    else
+      // Else queue it for later execution, and send "QUEUED" response
+      conn.queuedCommands += args
+      Success(RESPData.SimpleString("QUEUED"))
 
   /** Processes the command received from the client connection, and sends the
     * appropriate response back to the client.
@@ -63,12 +80,17 @@ object Handler:
     println(
       s"[:${conn.port}] [${Instant.now().toEpochMilli()}] ${args.mkString("(", ", ", ")")}"
     )
-    val response = args(0) match
-      case x if handlerMap.contains(x.toLowerCase) =>
-        handlerMap(x.toLowerCase).handle(args)
-      case x if handlerWithConnectionMap.contains(x.toLowerCase) =>
-        handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
-      case _ => cmd.UnknownHandler.handle(args)
+
+    val response =
+      if conn.inTransaction
+      then inTransactionHandler(args, conn)
+      else
+        args(0) match
+          case x if handlerMap.contains(x.toLowerCase) =>
+            handlerMap(x.toLowerCase).handle(args)
+          case x if handlerWithConnectionMap.contains(x.toLowerCase) =>
+            handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
+          case _ => cmd.UnknownHandler.handle(args)
 
     if conn.shouldSendCommandResult(args) then
       conn.sendData(
@@ -116,9 +138,11 @@ object Handler:
           if sendResponse(args, conn)
           then postMessage(args, conn)
       case Failure(err) =>
-        if err.isInstanceOf[IOException] then 
+        if err.isInstanceOf[IOException] then
           println(s"[:${conn.port}] Connection closed")
           conn.disconnect
         else
-          println(s"[:${conn.port}] Error processing command: ${err.getMessage}")
+          println(
+            s"[:${conn.port}] Error processing command: ${err.getMessage}"
+          )
           conn.sendData(RESPData.Error(err.getMessage))

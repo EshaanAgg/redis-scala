@@ -2,12 +2,12 @@ package redis.formats
 
 import redis.utils.Common
 
+import java.io.IOException
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import java.io.IOException
 
 sealed trait RESPData:
   def encode: String
