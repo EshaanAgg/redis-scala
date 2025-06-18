@@ -1,34 +1,15 @@
-[![progress-banner](https://backend.codecrafters.io/progress/redis/e1219091-2c9f-40c6-a770-8083fd688b7b)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+[![progress-banner](https://backend.codecrafters.io/progress/redis/6bd37c05-2efe-46a1-a075-e0edbd0f571d)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-This is a starting point for Scala solutions to the
-["Build Your Own Redis" Challenge](https://codecrafters.io/challenges/redis).
+This is my solution for the [Build Your Own Redis Challenge](https://codecrafters.io/challenges/redis) by [Codecrafters](https://codecrafters.io/) in Scala 3. I have already [solved this challenge in Go](https://github.com/EshaanAgg/toy-redis), but I wanted to learn Scala practically, and this is one of my favourite networking challenges, so another implementation was in order!
 
-In this challenge, you'll build a toy Redis clone that's capable of handling
-basic commands like `PING`, `SET` and `GET`. Along the way we'll learn about
-event loops, the Redis protocol and more.
+In this challenge, I build a toy Redis clone that's capable of handling basic commands like `PING`, `SET` and `GET`. We then subsequently expand the capacilities of the same via extensions like:
+- Replication
+- Persistence and RDB formats
+- Transactions
+- Streaming
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+All of the implementations are based on the actual Redis protocols and thus are 100% compliant with the same. To find a detailed description of the capacilities of this Redis implementation, head over to the [Codecrafters' course](https://app.codecrafters.io/courses/redis/overview)!
 
-# Passing the first stage
+## Running Locally
 
-The entry point for your Redis implementation is in
-`src/main/scala/codecrafters_redis/App.scala`. Study and uncomment the relevant
-code, and push your changes to pass the first stage:
-
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
-```
-
-That's all!
-
-# Stage 2 & beyond
-
-Note: This section is for stages 2 and beyond.
-
-1. Ensure you have `sbt (1.11.2)` installed locally
-1. Run `./your_program.sh` to run your Redis server, which is implemented in
-   `src/main/scala/codecrafters_redis/App.scala`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+You can spawn the Redis server instances by using the [`your_program.sh`](./your_program.sh) shell script with the appropiate arguments. You would require to have `sbt` installed to run the Scala code. To test the same, you can use the `redis-cli` command line tool to interact with the server. 
