@@ -42,9 +42,14 @@ object Role:
     def getReplica(conn: Connection): Option[Replica] =
       replicas.find(_.conn == conn)
 
+    /** Removes the connection from the list of replicas (if it exists). This is
+      * typically called when a replica disconnects.
+      * @param conn
+      *   The connection to remove
+      */
     def removeReplica(conn: Connection): Unit =
       replicas.indexWhere(_.conn == conn) match
-        case -1 => println(s"[Master] Replica not found for connection: $conn")
+        case -1 => ()
         case idx =>
           replicas.remove(idx)
 
