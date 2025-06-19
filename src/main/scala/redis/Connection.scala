@@ -4,6 +4,7 @@ import redis.formats.Decoder
 import redis.formats.RESPData
 import redis.handler.Handler
 
+import java.io.OutputStream
 import java.net.Socket
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
@@ -16,9 +17,13 @@ case class Connection(
     val conn: Socket,
     val isMasterConnection: Boolean
 ):
-  val in = conn.getInputStream
-  val out = conn.getOutputStream
+  val d: Decoder = Decoder(
+    conn.getInputStream
+  ) // The decoder for the input stream
+  val out: OutputStream = conn.getOutputStream()
 
+  val logPrefix: String =
+    s"[${if isMasterConnection then "M" else "C"} :${port}]"
   var inTransaction: Boolean = false
   val queuedCommands: ArrayBuffer[Array[String]] = ArrayBuffer()
 
@@ -30,17 +35,20 @@ case class Connection(
     *   The byte array to be sent.
     */
   def sendBytes(bytes: Array[Byte]): Unit =
+    println(s"${logPrefix} Sending ${bytes.take(10).mkString("[", ", ", "]")}")
     Try {
       out.write(bytes)
       out.flush()
     } recover { case e: Exception =>
-      println(s"Error sending bytes: ${e.getMessage}")
+      println(
+        s"${logPrefix} Error sending bytes ${bytes.take(10).mkString("[", ", ", "]")}: ${e.getMessage}"
+      )
       disconnect
     }
 
   def sendAndExpectResponse(toSend: RESPData, expect: RESPData): Unit =
     sendBytes(toSend.getBytes)
-    RESPData(in) match
+    RESPData(d) match
       case Success(v) =>
         if v != expect then
           throw new Exception(
@@ -53,7 +61,7 @@ case class Connection(
 
   def sendAndGetResponse(toSend: RESPData): RESPData =
     sendBytes(toSend.getBytes)
-    RESPData(in) match
+    RESPData(d) match
       case Failure(ex) =>
         throw new Exception(
           s"Failed to read response for $toSend: ${ex.getMessage}"
@@ -65,7 +73,7 @@ case class Connection(
     * @return
     *   true if there is data available, false otherwise.
     */
-  def hasData: Boolean = !conn.isClosed || Decoder(in).peekByte.isDefined
+  def hasData: Boolean = !conn.isClosed || d.peekByte.isDefined
 
   def sendData(data: RESPData): Unit =
     sendBytes(data.getBytes)
@@ -82,10 +90,10 @@ case class Connection(
 
   def registerInputHandler: Unit =
     new Thread(() =>
-      try while hasData do Handler.connectionHandler(in, this)
+      try while hasData do Handler.connectionHandler(d, this)
       catch
         case e: Exception =>
-          println(s"[:${port}] Unexpected error: ${e.getMessage}")
+          println(s"${logPrefix}  Unexpected error: ${e.getMessage}")
           disconnect
     ).start()
 

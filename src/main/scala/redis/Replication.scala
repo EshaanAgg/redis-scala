@@ -1,6 +1,5 @@
 package redis
 
-import redis.formats.Decoder
 import redis.formats.RDBFile
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
@@ -84,7 +83,7 @@ object Role:
           )
 
       // Step 4: Should recieve a RDB file from the master
-      RESPData.getRBDFileContent(Decoder(conn.in)) match
+      RESPData.getRBDFileContent(conn.d) match
         case Success(rdbBytes) =>
           println(
             s"[Handshake] [RDB File] Recieved ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
@@ -93,10 +92,9 @@ object Role:
             case None => println("[Handshake] [RDB File] Load successful")
             case Some(err) =>
               println(s"[Handshake] [RDB File] Load failed: $err")
-
         case Failure(ex) =>
-          throw new Exception(
-            s"[Handshake] Failed to read RDB file content: ${ex.getMessage}"
+          println(
+            s"[Handshake] [RDB File] Error in getting bytes: ${ex.getMessage}"
           )
 
       conn.registerInputHandler

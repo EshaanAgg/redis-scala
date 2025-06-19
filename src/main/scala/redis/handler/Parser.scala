@@ -1,9 +1,9 @@
 package redis.handler
 
+import redis.formats.Decoder
 import redis.formats.RESPData
 
 import java.io.IOException
-import java.io.InputStream
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -16,8 +16,8 @@ class ParserException(message: String, cause: Throwable = null)
     else s"$message: ${cause.getMessage}"
 
 object Parser:
-  def getCommand(in: InputStream): Try[Array[String]] =
-    RESPData(in) match
+  def getCommand(d: Decoder): Try[Array[String]] =
+    RESPData(d) match
       case Failure(err) =>
         if err.isInstanceOf[IOException] then Failure(err)
         else Failure(new ParserException("Failed to parse RESP data", err))

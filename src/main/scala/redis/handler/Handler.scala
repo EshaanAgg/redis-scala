@@ -2,6 +2,7 @@ package redis.handler
 
 import redis.Connection
 import redis.ServerState
+import redis.formats.Decoder
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
@@ -9,7 +10,6 @@ import redis.handler.commands as cmd
 import redis.handler.postHandlers as postCmd
 
 import java.io.IOException
-import java.io.InputStream
 import java.time.Instant
 import scala.util.Failure
 import scala.util.Success
@@ -77,8 +77,9 @@ object Handler:
     *   Connection object representing the client connection.
     */
   private def sendResponse(args: Array[String], conn: Connection): Boolean =
+    val timeSuff = Instant.now().toEpochMilli().toString().drop(7)
     println(
-      s"[:${conn.port}] [${Instant.now().toEpochMilli()}] ${args.mkString("(", ", ", ")")}"
+      s"${conn.logPrefix} [${timeSuff} ms] ${args.mkString("(", ", ", ")")}"
     )
 
     val response =
@@ -92,6 +93,7 @@ object Handler:
             handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
           case _ => cmd.UnknownHandler.handle(args)
 
+    // println(s"${conn.logPrefix} $response ${conn.shouldSendCommandResult(args)}")
     if conn.shouldSendCommandResult(args) then
       conn.sendData(
         response match
@@ -128,8 +130,8 @@ object Handler:
     * @param conn
     *   Connection object representing the client connection.
     */
-  def connectionHandler(in: InputStream, conn: Connection): Unit =
-    Parser.getCommand(in) match
+  def connectionHandler(d: Decoder, conn: Connection): Unit =
+    Parser.getCommand(d) match
       case Success(args) =>
         if args.nonEmpty then
           streamToReplicas(args)
@@ -139,8 +141,9 @@ object Handler:
           then postMessage(args, conn)
       case Failure(err) =>
         if err.isInstanceOf[IOException] then
-          println(s"[:${conn.port}] Connection closed")
+          println(s"${conn.logPrefix} Connection closed")
           conn.disconnect
+          return
         else
           println(
             s"[:${conn.port}] Error processing command: ${err.getMessage}"

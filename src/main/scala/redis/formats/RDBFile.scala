@@ -173,6 +173,16 @@ object RDBFile:
         }
       case _ => Success(Vector.empty) // No database section found
 
+  /** Processes the RDB file content from the given decoder. It reads the header
+    * section, metadata, and database section, storing the data in the value
+    * store. If any error occurs during processing, it returns the error as a
+    * string.
+    * @param d
+    *   Decoder The decoder to read the RDB file content from.
+    * @return
+    *   Option[String] An Option containing an error message if any error
+    *   occurs, or None if processing is successful.
+    */
   private def process(d: Decoder): Option[String] =
     // TODO: Parse the ending section of the RDB file as well
     readHeaderSection(d) match
@@ -182,7 +192,7 @@ object RDBFile:
           case Failure(ex) =>
             Some(ex.toString) // Metadata reading error
           case Success(metadata) =>
-            metadata.foreach((k, v) => println(s"[Metadata] $k -> $v"))
+            metadata.foreach((k, v) => println(s"[RDB Metadata] $k -> $v"))
             readDatabaseSection(d) match
               case Failure(ex) =>
                 Some(
@@ -202,9 +212,7 @@ object RDBFile:
     File
       .getStream(filePath)
       .flatMap(s =>
-        println(
-          "Found a database dump. Using it to initialize the database..."
-        )
+        println(s"[RDB File] Loading RDB file from '$filePath'")
         process(Decoder(s))
       )
 

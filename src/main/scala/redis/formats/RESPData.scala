@@ -3,7 +3,6 @@ package redis.formats
 import redis.utils.Common
 
 import java.io.IOException
-import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import scala.util.Failure
 import scala.util.Success
@@ -25,9 +24,6 @@ object RESPData:
 
     private def readInteger: Try[Int] =
       readString.map(_.toInt)
-
-  def apply(in: InputStream): Try[RESPData] =
-    RESPData(Decoder(in))
 
   def apply(d: Decoder): Try[RESPData] =
     d.peekByte match

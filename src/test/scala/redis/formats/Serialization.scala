@@ -113,7 +113,7 @@ class Serialization extends munit.FunSuite:
     simpleTestCases.foreach((cls, encodedBytes) => {
       val stream = new ByteArrayInputStream(encodedBytes.getBytes())
       assertEquals(
-        RESPData(stream),
+        RESPData(Decoder(stream)),
         Success(cls),
         s"Failed decoding for $encodedBytes"
       )
@@ -124,7 +124,7 @@ class Serialization extends munit.FunSuite:
     allCases.foreach { original =>
       val encoded = original.encode
       val stream = new ByteArrayInputStream(encoded.getBytes())
-      val roundTripped = RESPData(stream)
+      val roundTripped = RESPData(Decoder(stream))
 
       assertEquals(
         roundTripped,
