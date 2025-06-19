@@ -13,11 +13,24 @@ import scala.util.Success
 sealed trait Role:
   def performHandshake(): Unit
 
+private val getAckMessage: RESPData = RESPArray(
+  BulkString("REPLCONF"),
+  BulkString("GETACK"),
+  BulkString("*")
+)
+
+case class Replica(conn: Connection, var acknowledgedOffset: Long = 0L):
+  def sendBytes(bytes: Array[Byte]): Unit =
+    conn.sendBytes(bytes)
+
+  def sendGetAckRequest: Unit =
+    sendBytes(getAckMessage.getBytes)
+
 object Role:
   case class Master(
       replID: String,
       replOffset: Long,
-      replicas: ListBuffer[Connection]
+      replicas: ListBuffer[Replica]
   ) extends Role:
     var streamedOffset: Long = 0L
 
@@ -25,6 +38,15 @@ object Role:
       println(
         s"[Handshake] Master role with replID: $replID and replOffset: $replOffset"
       )
+
+    def getReplica(conn: Connection): Option[Replica] =
+      replicas.find(_.conn == conn)
+
+    def removeReplica(conn: Connection): Unit =
+      replicas.indexWhere(_.conn == conn) match
+        case -1 => println(s"[Master] Replica not found for connection: $conn")
+        case idx =>
+          replicas.remove(idx)
 
   // Conn is the connection to the master than is opened by the slave
   case class Slave(masterHost: String, masterPort: Int) extends Role:

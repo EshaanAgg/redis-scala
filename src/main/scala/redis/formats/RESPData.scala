@@ -40,6 +40,12 @@ object RESPData:
           IOException("End of stream reached")
         )
 
+  /** Special case of RESPData, used to represent that no response should be
+    * sent back to the client.
+    */
+  object NoResponse extends RESPData:
+    def encode: String = ""
+
   case class SimpleString(str: String) extends RESPData:
     def encode: String = s"+$str\r\n"
     override def toString: String = s"Simple('$str')"

@@ -99,11 +99,13 @@ object Handler:
     conn.updateAcknowledgedOffset(args)
 
     if conn.shouldSendCommandResult(args) then
-      conn.sendData(
-        response match
-          case Success(data) => data
-          case Failure(err)  => RESPData.Error(err.toString)
+      val data = response match
+        case Success(data) => data
+        case Failure(err)  => RESPData.Error(err.toString)
+      println(
+        s"${conn.logPrefix} [${timeSuff} ms] Response: ${data}"
       )
+      conn.sendData(data)
 
     response.isSuccess
 

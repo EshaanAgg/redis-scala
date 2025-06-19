@@ -46,5 +46,5 @@ object Parser:
                 )
           case x =>
             throw new ParserException(
-              s"Expected to receive a non-null array of arguments, instead gto $x"
+              s"Expected to receive a non-null array of arguments, instead got $x"
             )

@@ -22,7 +22,7 @@ object ServerState:
   var role: Role = Role.Master(
     UUID.randomUUID().toString.replace("-", ""),
     0L,
-    ListBuffer.empty[Connection]
+    ListBuffer.empty[Replica]
   )
 
   /** Updates the server state at startup from the map of options provided by

@@ -1,12 +1,14 @@
 package redis.handler.commands
 
 import redis.Connection
+import redis.Replica
 import redis.Role.Master
 import redis.Role.Slave
 import redis.ServerState
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
+import redis.formats.RESPData.NoResponse
 import redis.formats.RESPData.SimpleString
 import redis.handler.HandlerWithConnection
 
@@ -49,7 +51,7 @@ object ReplconfHandler extends HandlerWithConnection:
     else if args(1).toLowerCase == "listening-port"
     then
       println(s"[Registered Replica] :${args(2)}")
-      m.replicas += conn
+      m.replicas += Replica(conn)
       Success(SimpleString("OK"))
 
     // Handle capa command
@@ -59,6 +61,20 @@ object ReplconfHandler extends HandlerWithConnection:
         s"[Replica Capabilites] ${args.drop(2).mkString(",")}"
       )
       Success(SimpleString("OK"))
+
+    // Handle 'REPLCONF ACK <OFFSET>' messages
+    else if args(1).toLowerCase == "ack" then
+      m.getReplica(conn) match
+        case Some(replica) =>
+          // Update the acknowledged offset for the replica
+          val newOffset = args(2).toInt
+          replica.acknowledgedOffset = newOffset
+        case None =>
+          // Log an error if the replica is not found
+          println(
+            "[Master] Replica not found for connection: " + conn.logPrefix
+          )
+      Success(NoResponse)
 
     // Handle unknown commands
     else

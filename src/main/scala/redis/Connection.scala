@@ -4,6 +4,8 @@ import redis.Role.Master
 import redis.Role.Slave
 import redis.formats.Decoder
 import redis.formats.RESPData
+import redis.formats.RESPData.BulkString
+import redis.formats.RESPData.NoResponse
 import redis.handler.Handler
 
 import java.io.OutputStream
@@ -14,10 +16,10 @@ import scala.util.Success
 import scala.util.Try
 
 case class Connection(
-    val host: String,
-    val port: Int,
-    val conn: Socket,
-    val isMasterConnection: Boolean
+    host: String,
+    port: Int,
+    conn: Socket,
+    isMasterConnection: Boolean
 ):
   val d: Decoder = Decoder(
     conn.getInputStream
@@ -33,9 +35,8 @@ case class Connection(
     conn.close()
     // Remove the connection from replicas for Master role
     ServerState.role match
-      case m: Master =>
-        m.replicas -= this
-      case _: Slave => ()
+      case m: Master => m.removeReplica(this)
+      case _: Slave  => ()
 
   /** Sends a byte array to the connection's output stream.
     * @param bytes
@@ -96,7 +97,9 @@ case class Connection(
   def hasData: Boolean = !conn.isClosed || d.peekByte.isDefined
 
   def sendData(data: RESPData): Unit =
-    sendBytes(data.getBytes)
+    data match
+      case NoResponse => ()
+      case d          => sendBytes(d.getBytes)
 
   // Should send the results back to the client
   // only if it not a master connection, or it is a REPLCONF GETACK command
