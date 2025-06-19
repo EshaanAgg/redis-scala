@@ -84,15 +84,15 @@ object XreadCommand:
     }
 
 object XreadHandler extends Handler:
-  type StreamResult = (String, List[Entry])
+  private type StreamResult = (String, List[Entry])
 
   def handle(args: Array[String]): Try[RESPData] =
     XreadCommand(args)
       .map(
-        getStreamResultWithBlocking(_)
+        getStreamResultWithBlocking
       )
       .map(streams =>
-        // If any of the streams's entries are empty, return a nil response
+        // If any of the stream's entries are empty, return a nil response
         if streams.exists(_._2.isEmpty) then RESPData.BulkString.Null
         else
           RESPData.Array(

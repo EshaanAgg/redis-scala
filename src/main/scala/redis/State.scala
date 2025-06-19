@@ -53,9 +53,9 @@ object ServerState:
     if rdbFileResult.isDefined then
       println(s"Error loading RDB file: ${rdbFileResult.get}")
 
-  def performHandshake: Unit =
+  def performHandshake(): Unit =
     val handshake = Try {
-      role.performHandshake
+      role.performHandshake()
     }
     if handshake.isFailure then
       println(s"[Handshake] Failed: ${handshake.failed.get.getMessage}")

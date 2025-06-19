@@ -15,7 +15,7 @@ import scala.util.Success
 import scala.util.Try
 
 object ReplconfHandler extends HandlerWithConnection:
-  def slaveHander(args: Array[String], sl: Slave): Try[RESPData] =
+  private def slaveHander(args: Array[String], sl: Slave): Try[RESPData] =
     // Slave can only execute the 'REPLCONF GETACK *' command
     if args.length == 3 && args(1).toLowerCase == "getack" && args(2) == "*"
     then
@@ -33,7 +33,7 @@ object ReplconfHandler extends HandlerWithConnection:
         )
       )
 
-  def masterHander(
+  private def masterHander(
       args: Array[String],
       m: Master,
       conn: Connection

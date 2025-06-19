@@ -22,14 +22,14 @@ case class Connection(
   val d: Decoder = Decoder(
     conn.getInputStream
   ) // The decoder for the input stream
-  val out: OutputStream = conn.getOutputStream()
+  val out: OutputStream = conn.getOutputStream
 
   val logPrefix: String =
     s"[${if isMasterConnection then "M" else "C"} :${port}]"
   var inTransaction: Boolean = false
   val queuedCommands: ArrayBuffer[Array[String]] = ArrayBuffer()
 
-  def disconnect: Unit =
+  def disconnect(): Unit =
     conn.close()
     // Remove the connection from replicas for Master role
     ServerState.role match
@@ -49,7 +49,7 @@ case class Connection(
       println(
         s"${logPrefix} Error sending bytes ${bytes.take(10).mkString("[", ", ", "]")}...: ${e.getMessage}"
       )
-      disconnect
+      disconnect()
     }
 
   def sendAndExpectResponse(toSend: RESPData, expect: RESPData): Unit =
@@ -69,9 +69,6 @@ case class Connection(
     * from the input stream. If the response is successfully read, it returns
     * the response wrapped in a Try. If there is an error reading the response,
     * it returns a Failure with the error.
-    *
-    * @param toSend
-    * @return
     */
   def sendAndTryResponse(
       toSend: RESPData
@@ -82,9 +79,6 @@ case class Connection(
   /** Sends the given RESPData to the output stream and waits for a response. If
     * the response is successfully read, it returns the response. If there is an
     * error reading the response, it throws an Exception with the error message.
-    *
-    * @param toSend
-    * @return
     */
   def sendAndGetResponse(toSend: RESPData): RESPData =
     sendAndTryResponse(toSend) match
@@ -114,13 +108,13 @@ case class Connection(
         1
       ).toLowerCase == "getack"
 
-  def registerInputHandler: Unit =
+  def registerInputHandler(): Unit =
     new Thread(() =>
       try while hasData do Handler.connectionHandler(d, this)
       catch
         case e: Exception =>
           println(s"${logPrefix} Unexpected error: ${e.getMessage}")
-          disconnect
+          disconnect()
     ).start()
 
   /** Updates the acknowledged offset for the connection. This is only done for

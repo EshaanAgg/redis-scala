@@ -80,7 +80,7 @@ object Handler:
     *   Connection object representing the client connection.
     */
   private def sendResponse(args: Array[String], conn: Connection): Boolean =
-    val timeSuff = Instant.now().toEpochMilli().toString().drop(7)
+    val timeSuff = Instant.now().toEpochMilli.toString.drop(7)
     println(
       s"${conn.logPrefix} [${timeSuff} ms] ${args.mkString("(", ", ", ")")}"
     )
@@ -117,12 +117,12 @@ object Handler:
         postMessageHandlers(x.toLowerCase).handle(args, conn)
       case _ => ()
 
-  /** If master, then stream all the recieved write commands to all the
+  /** If master, then stream all the received write commands to all the
     * connected replicas.
     * @param bytes
     * @return
     */
-  private def streamToReplicas(args: Array[String]) =
+  private def streamToReplicas(args: Array[String]): Unit =
     if writeCommands.contains(args(0).toUpperCase) then
       val bytes = RESPArray(args.map(BulkString(_)).toList).getBytes
       ServerState.role match
@@ -150,8 +150,7 @@ object Handler:
       case Failure(err) =>
         if err.isInstanceOf[IOException] then
           println(s"${conn.logPrefix} Connection closed")
-          conn.disconnect
-          return
+          conn.disconnect()
         else
           println(
             s"[:${conn.port}] Error processing command: ${err.getMessage}"

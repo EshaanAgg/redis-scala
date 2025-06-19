@@ -11,7 +11,7 @@ import scala.util.Failure
 import scala.util.Success
 
 sealed trait Role:
-  def performHandshake: Unit
+  def performHandshake(): Unit
 
 object Role:
   case class Master(
@@ -21,7 +21,7 @@ object Role:
   ) extends Role:
     var streamedOffset: Long = 0L
 
-    override def performHandshake: Unit =
+    override def performHandshake(): Unit =
       println(
         s"[Handshake] Master role with replID: $replID and replOffset: $replOffset"
       )
@@ -35,7 +35,7 @@ object Role:
 
     // Perform the handshake with the master server
     // and then register the connection handler for all subsequent messages
-    override def performHandshake: Unit =
+    override def performHandshake(): Unit =
       // Step 1: Send a PING message to verify connection
       conn.sendAndExpectResponse(
         RESPArray(BulkString("PING")),
@@ -85,11 +85,11 @@ object Role:
             s"Unexpected response from PSYNC: $resp"
           )
 
-      // Step 4: Should recieve a RDB file from the master
+      // Step 4: Should receive RDB file from the master
       RESPData.getRBDFileContent(conn.d) match
         case Success(rdbBytes) =>
           println(
-            s"[Handshake] [RDB File] Recieved ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
+            s"[Handshake] [RDB File] Received ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
           )
           RDBFile.loadBytes(rdbBytes) match
             case None => println("[Handshake] [RDB File] Load successful")
@@ -100,7 +100,7 @@ object Role:
             s"[Handshake] [RDB File] Error in getting bytes: ${ex.getMessage}"
           )
 
-      conn.registerInputHandler
+      conn.registerInputHandler()
 
   def getInfoEntries(role: Role): Seq[(String, String)] =
     role match
