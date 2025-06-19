@@ -31,6 +31,11 @@ case class Connection(
 
   def disconnect: Unit =
     conn.close()
+    // Remove the connection from replicas for Master role
+    ServerState.role match
+      case m: Master =>
+        m.replicas -= this
+      case _: Slave => ()
 
   /** Sends a byte array to the connection's output stream.
     * @param bytes
@@ -60,14 +65,34 @@ case class Connection(
           s"Sent data ($toSend), but failed to read response: ${ex.getMessage}"
         )
 
-  def sendAndGetResponse(toSend: RESPData): RESPData =
+  /** Sends the given RESPData to the output stream and tries to read a response
+    * from the input stream. If the response is successfully read, it returns
+    * the response wrapped in a Try. If there is an error reading the response,
+    * it returns a Failure with the error.
+    *
+    * @param toSend
+    * @return
+    */
+  def sendAndTryResponse(
+      toSend: RESPData
+  ): Try[RESPData] =
     sendBytes(toSend.getBytes)
-    RESPData(d) match
+    RESPData(d)
+
+  /** Sends the given RESPData to the output stream and waits for a response. If
+    * the response is successfully read, it returns the response. If there is an
+    * error reading the response, it throws an Exception with the error message.
+    *
+    * @param toSend
+    * @return
+    */
+  def sendAndGetResponse(toSend: RESPData): RESPData =
+    sendAndTryResponse(toSend) match
+      case Success(resp) => resp
       case Failure(ex) =>
         throw new Exception(
-          s"Failed to read response for $toSend: ${ex.getMessage}"
+          s"Failed to read response after sending '$toSend': ${ex.getMessage}"
         )
-      case Success(v) => v
 
   /** Checks if there is data available in the input stream. Makes use of the
     * decoder to peek the next byte, as the same buffers the stream used.
@@ -94,7 +119,7 @@ case class Connection(
       try while hasData do Handler.connectionHandler(d, this)
       catch
         case e: Exception =>
-          println(s"${logPrefix}  Unexpected error: ${e.getMessage}")
+          println(s"${logPrefix} Unexpected error: ${e.getMessage}")
           disconnect
     ).start()
 

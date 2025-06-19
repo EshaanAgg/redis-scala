@@ -42,7 +42,8 @@ object Handler:
     "xadd" -> cmd.XaddHandler,
     "xrange" -> cmd.XrangeHandler,
     "xread" -> cmd.XreadHandler,
-    "incr" -> cmd.IncrHandler
+    "incr" -> cmd.IncrHandler,
+    "wait" -> cmd.WaitHandler
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
