@@ -1,6 +1,7 @@
 package redis.formats
 
 import java.io.BufferedInputStream
+import java.io.ByteArrayInputStream
 import java.io.InputStream
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Failure
@@ -69,3 +70,7 @@ case class Decoder(rawIn: InputStream):
 
     result.toArray
   }
+
+object Decoder:
+  def apply(bytes: Array[Byte]): Decoder =
+    new Decoder(new ByteArrayInputStream(bytes))

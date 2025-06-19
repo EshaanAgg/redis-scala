@@ -173,6 +173,25 @@ object RDBFile:
         }
       case _ => Success(Vector.empty) // No database section found
 
+  private def process(d: Decoder): Option[String] =
+    // TODO: Parse the ending section of the RDB file as well
+    readHeaderSection(d) match
+      case Some(err) => Some(err) // Header section error
+      case None =>
+        readMetadata(d) match
+          case Failure(ex) =>
+            Some(ex.toString) // Metadata reading error
+          case Success(metadata) =>
+            metadata.foreach((k, v) => println(s"[Metadata] $k -> $v"))
+            readDatabaseSection(d) match
+              case Failure(ex) =>
+                Some(
+                  ex.toString
+                ) // Database section error
+              case Success(records) =>
+                records.foreach((k, v) => ServerState.addKey(k, v))
+                None // No errors, return None
+
   /** Loads all the data from Redis RDB file, and stores the same in the value
     * store. Returns the error as a string if there was any. If the file does
     * not exist, no processing happens with no error reported.
@@ -180,29 +199,14 @@ object RDBFile:
     *   The path to the database dump file
     */
   def loadFile(filePath: String): Option[String] =
-    // TODO: Parse the ending section of the RDB file as well
     File
       .getStream(filePath)
       .flatMap(s =>
         println(
           "Found a database dump. Using it to initialize the database..."
         )
-        val d = Decoder(s)
-
-        readHeaderSection(d) match
-          case Some(err) => Some(err) // Header section error
-          case None =>
-            readMetadata(d) match
-              case Failure(ex) =>
-                Some(ex.toString) // Metadata reading error
-              case Success(metadata) =>
-                metadata.foreach((k, v) => println(s"[Metadata] $k -> $v"))
-                readDatabaseSection(d) match
-                  case Failure(ex) =>
-                    Some(
-                      ex.toString
-                    ) // Database section error
-                  case Success(records) =>
-                    records.foreach((k, v) => ServerState.addKey(k, v))
-                    None // No errors, return None
+        process(Decoder(s))
       )
+
+  def loadBytes(bytes: Array[Byte]): Option[String] =
+    process(Decoder(bytes))

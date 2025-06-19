@@ -1,6 +1,7 @@
 package redis
 
 import redis.formats.Decoder
+import redis.formats.RDBFile
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
@@ -28,7 +29,6 @@ object Role:
   case class Slave(masterHost: String, masterPort: Int) extends Role:
     var masterReplID: String = "?"
     var masterReplOffset: Long = -1L
-
     val conn: Connection = Connection(masterHost, masterPort, true)
 
     // Perform the handshake with the master server
@@ -87,8 +87,13 @@ object Role:
       RESPData.getRBDFileContent(Decoder(conn.in)) match
         case Success(rdbBytes) =>
           println(
-            s"[Handshake] [RDB File Received] ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
+            s"[Handshake] [RDB File] Recieved ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
           )
+          RDBFile.loadBytes(rdbBytes) match
+            case None => println("[Handshake] [RDB File] Load successful")
+            case Some(err) =>
+              println(s"[Handshake] [RDB File] Load failed: $err")
+
         case Failure(ex) =>
           throw new Exception(
             s"[Handshake] Failed to read RDB file content: ${ex.getMessage}"

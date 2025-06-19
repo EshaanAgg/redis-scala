@@ -1,5 +1,6 @@
 package redis
 
+import redis.formats.Decoder
 import redis.formats.RESPData
 import redis.handler.Handler
 
@@ -59,7 +60,12 @@ case class Connection(
         )
       case Success(v) => v
 
-  def isClosed: Boolean = conn.isClosed
+  /** Checks if there is data available in the input stream. Makes use of the
+    * decoder to peek the next byte, as the same buffers the stream used.
+    * @return
+    *   true if there is data available, false otherwise.
+    */
+  def hasData: Boolean = !conn.isClosed || Decoder(in).peekByte.isDefined
 
   def sendData(data: RESPData): Unit =
     sendBytes(data.getBytes)
@@ -76,7 +82,7 @@ case class Connection(
 
   def registerInputHandler: Unit =
     new Thread(() =>
-      try while !isClosed do Handler.connectionHandler(in, this)
+      try while hasData do Handler.connectionHandler(in, this)
       catch
         case e: Exception =>
           println(s"[:${port}] Unexpected error: ${e.getMessage}")
