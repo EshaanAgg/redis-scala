@@ -24,20 +24,6 @@ case class Connection(
   def disconnect: Unit =
     conn.close()
 
-  /** Read incoming bytes from the connection.
-    */
-  def getBytes: Array[Byte] =
-    Try {
-      val buffer = new Array[Byte](1024)
-      val bytesRead = in.read(buffer)
-      if bytesRead == -1 then Array.emptyByteArray
-      else buffer.take(bytesRead)
-    } recover { case e: Exception =>
-      println(s"Error reading bytes: ${e.getMessage}")
-      disconnect
-      Array.emptyByteArray
-    } getOrElse Array.emptyByteArray
-
   /** Sends a byte array to the connection's output stream.
     * @param bytes
     *   The byte array to be sent.

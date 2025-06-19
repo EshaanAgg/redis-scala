@@ -165,3 +165,24 @@ object RESPData:
               )
           }
         )
+
+  /** Reads the RDB file content from the given decoder. The format for the RDB
+    * file bytes is: $<length>\r\n<bytes>
+    *
+    * @param d
+    *   The decoder to read from.
+    */
+  def getRBDFileContent(d: Decoder): Try[scala.Array[Byte]] =
+    d.expectByte('$').flatMap { _ =>
+      d.readInteger.flatMap { length =>
+        d.readNBytes(length).flatMap { bytes =>
+          if bytes.length == length then Success(bytes)
+          else
+            Failure(
+              DecoderException(
+                s"Expected $length bytes, but read ${bytes.length} bytes"
+              )
+            )
+        }
+      }
+    }

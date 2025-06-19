@@ -1,10 +1,14 @@
 package redis
 
+import redis.formats.Decoder
+import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
 import redis.formats.RESPData.SimpleString
 
 import scala.collection.mutable.ListBuffer
+import scala.util.Failure
+import scala.util.Success
 
 sealed trait Role:
   def performHandshake: Unit
@@ -80,10 +84,15 @@ object Role:
           )
 
       // Step 4: Should recieve a RDB file from the master
-      val rdbBytes = conn.getBytes
-      println(
-        s"[Handshake] [RDB File Received] ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
-      )
+      RESPData.getRBDFileContent(Decoder(conn.in)) match
+        case Success(rdbBytes) =>
+          println(
+            s"[Handshake] [RDB File Received] ${rdbBytes.length} bytes -> ${rdbBytes.take(10).mkString("[", ",", "]")}..."
+          )
+        case Failure(ex) =>
+          throw new Exception(
+            s"[Handshake] Failed to read RDB file content: ${ex.getMessage}"
+          )
 
       conn.registerInputHandler
 
