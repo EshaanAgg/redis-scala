@@ -1,5 +1,7 @@
 package redis
 
+import redis.Role.Master
+import redis.Role.Slave
 import redis.formats.Decoder
 import redis.formats.RESPData
 import redis.handler.Handler
@@ -95,6 +97,25 @@ case class Connection(
           println(s"${logPrefix}  Unexpected error: ${e.getMessage}")
           disconnect
     ).start()
+
+  /** Updates the acknowledged offset for the connection. This is only done for
+    * the master connection, and is used to track the last acknowledged offset
+    * by the replica. This should be called after the command has been
+    * processed, so that the current command is not included in the acknowledged
+    * offset.
+    *
+    * @param args
+    */
+  def updateAcknowledgedOffset(args: Array[String]): Unit =
+    if isMasterConnection then
+      ServerState.role match
+        case s: Slave =>
+          val cmd = RESPData.Array(args.map(RESPData.BulkString(_)).toList)
+          s.acknowledgedOffset += cmd.getBytes.length
+        case _: Master =>
+          throw new IllegalStateException(
+            "isMasterConnection is set true for a Master role, which is not allowed."
+          )
 
 object Connection:
   def apply(socket: Socket): Connection =

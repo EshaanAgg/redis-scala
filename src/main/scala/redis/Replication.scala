@@ -19,6 +19,8 @@ object Role:
       replOffset: Long,
       replicas: ListBuffer[Connection]
   ) extends Role:
+    var streamedOffset: Long = 0L
+
     override def performHandshake: Unit =
       println(
         s"[Handshake] Master role with replID: $replID and replOffset: $replOffset"
@@ -28,6 +30,7 @@ object Role:
   case class Slave(masterHost: String, masterPort: Int) extends Role:
     var masterReplID: String = "?"
     var masterReplOffset: Long = -1L
+    var acknowledgedOffset: Long = 0L
     val conn: Connection = Connection(masterHost, masterPort, true)
 
     // Perform the handshake with the master server

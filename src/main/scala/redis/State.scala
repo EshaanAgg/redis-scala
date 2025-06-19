@@ -25,16 +25,6 @@ object ServerState:
     ListBuffer.empty[Connection]
   )
 
-  /** Returns all the replicas that the connected server should stream data to.
-    * If the server is a slave, it returns an empty array.
-    * @return
-    *   Array of connections to the replicas
-    */
-  def replicas: Array[Connection] =
-    role match
-      case Role.Master(_, _, replicas) => replicas.toArray
-      case Role.Slave(_, _)            => Array.empty[Connection]
-
   /** Updates the server state at startup from the map of options provided by
     * the user
     * @param args

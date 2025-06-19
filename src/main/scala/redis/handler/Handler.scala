@@ -1,6 +1,8 @@
 package redis.handler
 
 import redis.Connection
+import redis.Role.Master
+import redis.Role.Slave
 import redis.ServerState
 import redis.formats.Decoder
 import redis.formats.RESPData
@@ -93,7 +95,8 @@ object Handler:
             handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
           case _ => cmd.UnknownHandler.handle(args)
 
-    // println(s"${conn.logPrefix} $response ${conn.shouldSendCommandResult(args)}")
+    conn.updateAcknowledgedOffset(args)
+
     if conn.shouldSendCommandResult(args) then
       conn.sendData(
         response match
@@ -121,7 +124,11 @@ object Handler:
   private def streamToReplicas(args: Array[String]) =
     if writeCommands.contains(args(0).toUpperCase) then
       val bytes = RESPArray(args.map(BulkString(_)).toList).getBytes
-      ServerState.replicas.foreach(_.sendBytes(bytes))
+      ServerState.role match
+        case m: Master =>
+          m.streamedOffset += bytes.length
+          m.replicas.foreach(_.sendBytes(bytes))
+        case _: Slave => () // No actions needed for slaves
 
   /** Processes the incoming connection by reading the command from the input
     * stream, sending the response back to the client, and handling any
