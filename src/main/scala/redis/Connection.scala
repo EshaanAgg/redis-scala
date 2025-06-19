@@ -35,13 +35,12 @@ case class Connection(
     *   The byte array to be sent.
     */
   def sendBytes(bytes: Array[Byte]): Unit =
-    println(s"${logPrefix} Sending ${bytes.take(10).mkString("[", ", ", "]")}")
     Try {
       out.write(bytes)
       out.flush()
     } recover { case e: Exception =>
       println(
-        s"${logPrefix} Error sending bytes ${bytes.take(10).mkString("[", ", ", "]")}: ${e.getMessage}"
+        s"${logPrefix} Error sending bytes ${bytes.take(10).mkString("[", ", ", "]")}...: ${e.getMessage}"
       )
       disconnect
     }
