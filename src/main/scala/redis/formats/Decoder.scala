@@ -14,7 +14,10 @@ import boundary.break
 class DecoderException(message: String, cause: Throwable = null)
     extends Exception(message, cause)
 
-case class Decoder(rawIn: InputStream):
+case class Decoder(
+    rawIn: InputStream,
+    readBytes: ArrayBuffer[Byte] = ArrayBuffer.empty
+):
   private val in: BufferedInputStream =
     rawIn match
       case b: BufferedInputStream => b
@@ -22,6 +25,7 @@ case class Decoder(rawIn: InputStream):
 
   def readNBytes(n: Int): Try[Array[Byte]] =
     val arr = in.readNBytes(n)
+    readBytes ++= arr
     if arr.length != n then
       Failure(Exception(s"Expected $n bytes, got ${arr.length}"))
     else Success(arr)
@@ -29,7 +33,9 @@ case class Decoder(rawIn: InputStream):
   def readByte: Try[Byte] =
     val value = in.read()
     if value == -1 then Failure(Exception("Stream ended unexpectedly"))
-    else Success(value.toByte)
+    else
+      readBytes.append(value.toByte)
+      Success(value.toByte)
 
   def peekByte: Option[Byte] =
     in.mark(1)
@@ -70,6 +76,9 @@ case class Decoder(rawIn: InputStream):
 
     result.toArray
   }
+
+  def isEndOfStream: Boolean =
+    peekByte.isEmpty
 
 object Decoder:
   def apply(bytes: Array[Byte]): Decoder =

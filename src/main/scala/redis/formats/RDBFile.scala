@@ -2,6 +2,7 @@ package redis.formats
 
 import redis.ServerState
 import redis.StoreVal
+import redis.utils.CRC64
 import redis.utils.Convert
 import redis.utils.File
 
@@ -18,6 +19,7 @@ object RDBFile:
   private val DatabaseSectionByte: Byte = 0xfe.toByte
   private val RecordWithMSExpiryByte: Byte = 0xfc.toByte
   private val RecordWithSecExpiryByte: Byte = 0xfd.toByte
+  private val EOFSectionByte: Byte = 0xff.toByte
 
   // Define methods on decoder to read datatypes specific to RDB file
   extension (d: Decoder)
@@ -173,6 +175,32 @@ object RDBFile:
         }
       case _ => Success(Vector.empty) // No database section found
 
+  private def readEOFSection(d: Decoder): Try[Unit] =
+
+    // Read EOF header, then 8 bytes for the checksum
+    // The stream the stream ended, and the checksum is verified
+    d.expectByte(EOFSectionByte).flatMap { _ =>
+      d.readNBytes(8).map { checksumBytes =>
+        val checksum = Convert.getLENumber(checksumBytes)
+        if !d.isEndOfStream then
+          Failure(
+            DecoderException(
+              "Expected end of stream after EOF section, but more data found"
+            )
+          )
+        else if !CRC64.verifyCRC(d.readBytes.toArray, checksum) then
+          Failure(
+            DecoderException(
+              s"Checksum verification failed for RDB file. Expected: $checksum"
+            )
+          )
+        else {
+          println(s"[RDB File] Checksum verified: $checksum")
+          Success(())
+        }
+      }
+    }
+
   /** Processes the RDB file content from the given decoder. It reads the header
     * section, metadata, and database section, storing the data in the value
     * store. If any error occurs during processing, it returns the error as a
@@ -199,7 +227,11 @@ object RDBFile:
                   ex.toString
                 ) // Database section error
               case Success(records) =>
-                records.foreach((k, v) => ServerState.addKey(k, v))
+                readEOFSection(d) match
+                  case Failure(ex) =>
+                    Some(ex.toString) // EOF section error
+                  case Success(_) =>
+                    records.foreach((k, v) => ServerState.addKey(k, v))
                 None // No errors, return None
 
   /** Loads all the data from Redis RDB file, and stores the same in the value
