@@ -53,10 +53,10 @@ object RDBFile:
       readInt.flatMap(len =>
         if (len & 0xc0) == 0xc0 then
           // Read number encoded as a string
-          val bufLen = len match
-            case -64 => 1 // 0xC0
-            case -63 => 2 // 0xC1
-            case -62 => 4 // 0xC2
+          val bufLen = (len & 0xff) match
+            case 0xc0 => 1
+            case 0xc1 => 2
+            case 0xc2 => 4
             case _ =>
               throw new DecoderException(
                 s"Unsupported string length: $len"

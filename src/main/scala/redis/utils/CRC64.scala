@@ -1,5 +1,7 @@
 package redis.utils
 
+import scala.annotation.tailrec
+
 // Redis uses the CRC64 variant with "Jones" coefficients and init value of 0.
 // Specification:
 // Name: crc-64-jones
@@ -106,12 +108,17 @@ object CRC64:
   )
 
   def crc64(initialCrc: Long, data: Array[Byte]): Long =
-    var crc = initialCrc
-    for (b <- data) {
-      val byteVal = if (REFLECT_IN) reflectByte(b) else b & 0xff
-      val index = ((crc ^ byteVal) & 0xff).toInt
-      crc = table(index) ^ (crc >>> 8)
-    }
+    @tailrec
+    def loop(crc: Long, idx: Int, data: Array[Byte]): Long =
+      if (idx >= data.length) crc
+      else {
+        val byteVal =
+          if (REFLECT_IN) reflectByte(data(idx)) else data(idx) & 0xff
+        val index = ((crc ^ byteVal) & 0xff).toInt
+        loop(table(index) ^ (crc >>> 8), idx + 1, data)
+      }
+
+    val crc = loop(initialCrc, 0, data)
     if (REFLECT_OUT) reflectLong(crc) ^ XOR_OUT else crc ^ XOR_OUT
 
   def compute(data: Array[Byte]): Long =
@@ -120,20 +127,13 @@ object CRC64:
   def verifyCRC(data: Array[Byte], expectedCRC: Long): Boolean =
     compute(data) == expectedCRC
 
+  @tailrec
+  private def reflectLoop(v: Long, res: Long, count: Int): Long =
+    if (count == 0) res
+    else reflectLoop(v >> 1, (res << 1) | (v & 1), count - 1)
+
   private def reflectByte(b: Byte): Int =
-    var value = b & 0xff
-    var res = 0
-    for (_ <- 0 until 8) {
-      res = (res << 1) | (value & 1)
-      value >>= 1
-    }
-    res
+    reflectLoop(b & 0xff, 0, 8).toInt
 
   private def reflectLong(value: Long): Long =
-    var v = value
-    var res = 0L
-    for (_ <- 0 until 64) {
-      res = (res << 1) | (v & 1L)
-      v >>= 1
-    }
-    res
+    reflectLoop(value, 0, 64)
