@@ -1,10 +1,14 @@
 package redis.utils
 
-/** Redis uses the CRC64 variant with "Jones" coefficients and init value of 0.
-  * Specification: Name: crc-64-jones Width: 64 bits Poly: 0xad93d23594c935a9
-  * Reflected In: True Xor_In: 0xffffffffffffffff Reflected_Out: True Xor_Out:
-  * 0x0
-  */
+// Redis uses the CRC64 variant with "Jones" coefficients and init value of 0.
+// Specification:
+// Name: crc-64-jones
+// Width: 64 bits
+// Poly: 0xad93d23594c935a9
+// Reflected In:
+// True Xor_In: 0xffffffffffffffff
+// Reflected_Out: True
+// Xor_Out: 0x0
 object CRC64:
   val POLY: Long = 0xad93d23594c935a9L
   val XOR_IN: Long = 0xffffffffffffffffL
