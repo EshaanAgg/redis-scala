@@ -1,5 +1,6 @@
 package redis
 
+import redis.ds.LinkedList
 import redis.formats.RDBFile
 
 import java.time.Instant
@@ -16,6 +17,8 @@ case class StoreVal(data: String, exp: Option[Instant]):
 
 object ServerState:
   private val store: TrieMap[String, StoreVal] = new TrieMap()
+  private val listStore: TrieMap[String, LinkedList[String]] = new TrieMap()
+
   var dir: String = "./sample"
   var dbFile: String = "dump.rdb"
   var port: Int = 6379
@@ -116,3 +119,14 @@ object ServerState:
       .filter(_._2.isDefined)
       .keys
       .toSeq
+
+  /** Returns the linked list associated with the given key, creating it if it
+    * does not exist.
+    *
+    * @param k
+    *   The key for the linked list
+    * @return
+    *   The linked list associated with the key
+    */
+  def getOrCreateList(k: String): LinkedList[String] =
+    listStore.getOrElseUpdate(k, LinkedList[String]())

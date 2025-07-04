@@ -27,7 +27,7 @@ trait PostMessageHandler:
   def handle(args: Array[String], conn: Connection): Unit
 
 object Handler:
-  val writeCommands: Set[String] = Set("SET", "INCR", "XADD")
+  val writeCommands: Set[String] = Set("SET", "INCR", "XADD", "LPUSH", "RPUSH")
 
   val handlerMap: Map[String, Handler] = Map(
     "ping" -> cmd.PingHandler,
@@ -43,7 +43,9 @@ object Handler:
     "xrange" -> cmd.XrangeHandler,
     "xread" -> cmd.XreadHandler,
     "incr" -> cmd.IncrHandler,
-    "wait" -> cmd.WaitHandler
+    "wait" -> cmd.WaitHandler,
+    "lpush" -> cmd.ListPushHandler.LPush,
+    "rpush" -> cmd.ListPushHandler.RPush
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
@@ -82,7 +84,7 @@ object Handler:
   private def sendResponse(args: Array[String], conn: Connection): Boolean =
     val timeSuff = Instant.now().toEpochMilli.toString.drop(7)
     println(
-      s"${conn.logPrefix} [${timeSuff} ms] ${args.mkString("(", ", ", ")")}"
+      s"${conn.logPrefix} [$timeSuff ms] ${args.mkString("(", ", ", ")")}"
     )
 
     val response =
@@ -103,7 +105,7 @@ object Handler:
         case Success(data) => data
         case Failure(err)  => RESPData.Error(err.toString)
       println(
-        s"${conn.logPrefix} [${timeSuff} ms] Response: ${data}"
+        s"${conn.logPrefix} [$timeSuff ms] Response: $data"
       )
       conn.sendData(data)
 
@@ -111,7 +113,9 @@ object Handler:
 
   /** Runs the appropriate post message handler based on the command received.
     * @param args
+    *   The arguments to the command
     * @param conn
+    *   The connection
     */
   private def postMessage(args: Array[String], conn: Connection): Unit =
     args(0) match
@@ -121,7 +125,8 @@ object Handler:
 
   /** If master, then stream all the received write commands to all the
     * connected replicas.
-    * @param bytes
+    * @param args
+    *   The arguments of the command to stream
     * @return
     */
   private def streamToReplicas(args: Array[String]): Unit =
