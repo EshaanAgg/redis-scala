@@ -1,5 +1,7 @@
 package redis.ds
 
+import scala.annotation.tailrec
+
 case class Node[T](
     value: T,
     var prev: Option[Node[T]] = None,
@@ -64,3 +66,80 @@ case class LinkedList[T](
       head = Some(newNode)
     length += 1
     newNode
+
+  /** Returns the appropriate idx in the range [0, length - 1] for the given idx
+    * in range -inf to inf. Implements support for -ve indexes to reference
+    * nodes from the end, and clipping for out of bounds indexes.
+    *
+    * @param idx
+    *   The index to normalize
+    * @return
+    *   The normalized index
+    */
+  def getNormalizedIdx(idx: Int): Int =
+    if idx < -length then 0
+    else if idx < 0 then length + idx
+    else if idx < length then idx
+    else length - 1
+
+  /** Traverses 'i' number of steps forward from the current 'cur' node.
+    * @param i
+    *   Number of steps to go forward.
+    * @param cur
+    *   The node to traverse from. Defaults to the head to the list.
+    * @return
+    */
+  @tailrec
+  private def traverseHead(i: Int, cur: Node[T] = head.get): Node[T] =
+    if i == 0 then cur else traverseHead(i - 1, cur.next.get)
+
+  /** Traverses 'i' number of steps backward from the current 'cur' node.
+    *
+    * @param i
+    *   Number of steps to go back.
+    * @param cur
+    *   The node to traverse from. Defaults to the tail to the list.
+    * @return
+    */
+  @tailrec
+  private def traverseTail(i: Int, cur: Node[T] = tail.get): Node[T] =
+    if i == 0 then cur else traverseTail(i - 1, cur.prev.get)
+
+  /** Returns the element at the index idx in the current list. It is required
+    * that the index is valid, that is between 0 and length - 1. Should not be
+    * called on an empty list.
+    *
+    * The list is traversed from the nearer end for faster implementation.
+    * @param idx
+    *   The index to get
+    * @return
+    *   The fetched node
+    */
+  def apply(idx: Int): Node[T] =
+    assert(
+      0 <= idx && idx < length,
+      s"Invalid idx = $idx accessed for linked list with length $length"
+    )
+    if idx <= (length - 1) / 2
+    then traverseHead(idx)
+    else traverseTail(length - idx - 1)
+
+  /** Returns all the nodes between 'a' and 'b' in the list. The user must
+    * ensure that both the nodes exist in the list and that node a <= node b in
+    * the list.
+    * @param a
+    *   The starting node
+    * @param b
+    *   The ending node
+    * @param acc
+    *   The accumulated list till now
+    * @return
+    */
+  @tailrec
+  final def apply(
+      a: Node[T],
+      b: Node[T],
+      acc: List[Node[T]] = Nil
+  ): List[Node[T]] =
+    if (a == b) then a +: acc
+    else apply(a, b.prev.get, b +: acc)

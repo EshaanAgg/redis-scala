@@ -45,7 +45,9 @@ object Handler:
     "incr" -> cmd.IncrHandler,
     "wait" -> cmd.WaitHandler,
     "lpush" -> cmd.ListPushHandler.LPush,
-    "rpush" -> cmd.ListPushHandler.RPush
+    "rpush" -> cmd.ListPushHandler.RPush,
+    "llen" -> cmd.LLenHandler,
+    "lrange" -> cmd.LRangeHandler
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
