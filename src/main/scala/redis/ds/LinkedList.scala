@@ -28,6 +28,23 @@ case class LinkedList[T](
 ):
   def isEmpty: Boolean = length == 0
 
+  def popHead: T =
+    assert(!isEmpty, "popHead called on empty list")
+    val h = head.get
+    if h.next.isDefined then h.next.get.prev = None
+    head = h.next
+    length -= 1
+    h.value
+
+  def popTail: T =
+    assert(!isEmpty, "popTail called on empty list")
+
+    val t = tail.get
+    if t.prev.isDefined then t.prev.get.next = None
+    tail = t.prev
+    length -= 1
+    t.value
+
   /** Adds a new node with the given value to the end of the linked list. The
     * complexity of this operation is O(1).
     *

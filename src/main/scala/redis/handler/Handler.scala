@@ -48,7 +48,9 @@ object Handler:
     "lpush" -> cmd.ListPushHandler.LPush,
     "rpush" -> cmd.ListPushHandler.RPush,
     "llen" -> cmd.LLenHandler,
-    "lrange" -> cmd.LRangeHandler
+    "lrange" -> cmd.LRangeHandler,
+    "lpop" -> cmd.ListPopHandler.LPop,
+    "rpop" -> cmd.ListPopHandler.RPop
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
