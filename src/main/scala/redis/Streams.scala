@@ -5,7 +5,7 @@ import redis.formats.RESPData.BulkString
 
 import java.time.Instant
 import scala.annotation.tailrec
-import scala.collection.mutable.TreeMap
+import scala.collection.mutable
 
 case class EntryID(msTime: Long, seq: Long):
   override def toString: String = s"$msTime-$seq"
@@ -109,8 +109,8 @@ object Entry:
 type StreamData = List[Entry]
 
 object StreamStore:
-  private val streams: TreeMap[String, StreamData] =
-    TreeMap[String, StreamData]()
+  private val streams: mutable.TreeMap[String, StreamData] =
+    mutable.TreeMap[String, StreamData]()
 
   /** Creates a new stream with the given name if it does not already exist.
     * Throws an exception if the stream already exists.
@@ -134,7 +134,6 @@ object StreamStore:
     if streams.contains(name) then
       val stream = streams(name)
       streams(name) = stream :+ entry
-      Some(entry)
     else
       makeStream(name)
       addEntryToStream(name, entry)

@@ -27,7 +27,7 @@ case class Connection(
   val out: OutputStream = conn.getOutputStream
 
   val logPrefix: String =
-    s"[${if isMasterConnection then "M" else "C"} :${port}]"
+    s"[${if isMasterConnection then "M" else "C"} :$port]"
   var inTransaction: Boolean = false
   val queuedCommands: ArrayBuffer[Array[String]] = ArrayBuffer()
 
@@ -48,7 +48,7 @@ case class Connection(
       out.flush()
     } recover { case e: Exception =>
       println(
-        s"${logPrefix} Error sending bytes ${bytes.take(10).mkString("[", ", ", "]")}...: ${e.getMessage}"
+        s"$logPrefix Error sending bytes ${bytes.take(10).mkString("[", ", ", "]")}...: ${e.getMessage}"
       )
       disconnect()
     }
@@ -71,7 +71,7 @@ case class Connection(
     * the response wrapped in a Try. If there is an error reading the response,
     * it returns a Failure with the error.
     */
-  def sendAndTryResponse(
+  private def sendAndTryResponse(
     toSend: RESPData
   ): Try[RESPData] =
     sendBytes(toSend.getBytes)
@@ -113,10 +113,10 @@ case class Connection(
 
   def registerInputHandler(): Unit =
     new Thread(() =>
-      try while hasData do Handler.connectionHandler(d, this)
+      try while hasData do Handler.connectionHandler(this)
       catch
         case e: Exception =>
-          println(s"${logPrefix} Unexpected error: ${e.getMessage}")
+          println(s"$logPrefix Unexpected error: ${e.getMessage}")
           disconnect()).start()
 
   /** Updates the acknowledged offset for the connection. This is only done for
@@ -126,6 +126,7 @@ case class Connection(
     * offset.
     *
     * @param args
+    *   The arguments received in the command
     */
   def updateAcknowledgedOffset(args: Array[String]): Unit =
     if isMasterConnection then

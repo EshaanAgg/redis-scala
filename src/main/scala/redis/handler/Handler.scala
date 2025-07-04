@@ -4,7 +4,6 @@ import redis.Connection
 import redis.Role.Master
 import redis.Role.Slave
 import redis.ServerState
-import redis.formats.Decoder
 import redis.formats.RESPData
 import redis.formats.RESPData.Array as RESPArray
 import redis.formats.RESPData.BulkString
@@ -28,7 +27,7 @@ trait PostMessageHandler:
 
 object Handler:
   val writeCommands: Set[String] = Set("SET", "INCR", "XADD", "LPUSH", "RPUSH")
-  val blockingCommands: Set[String] = Set("XREAD", "WAIT")
+  private val blockingCommands: Set[String] = Set("XREAD", "WAIT")
 
   val handlerMap: Map[String, Handler] = Map(
     "ping" -> cmd.PingHandler,
@@ -92,7 +91,7 @@ object Handler:
       s"${conn.logPrefix} [$timeSuff ms] ${args.mkString("(", ", ", ")")}"
     )
 
-    // Lock the state before processing the command
+    // Block the server state for processing commands in error
     ServerState.mtx.lock()
 
     val response =
@@ -107,7 +106,8 @@ object Handler:
           case _ => cmd.UnknownHandler.handle(args)
 
     // If the command is not a blocking command, or if there was any error in the
-    // handler, then we should manually release the lock
+    // handler, then we should automatically release the lock
+    // Otherwise, it is assumed to be the duty of the respective handler
     if !blockingCommands.contains(args(0).toUpperCase) || response.isFailure
     then ServerState.mtx.unlock()
 
@@ -158,8 +158,8 @@ object Handler:
     * @param conn
     *   Connection object representing the client connection.
     */
-  def connectionHandler(d: Decoder, conn: Connection): Unit =
-    Parser.getCommand(d) match
+  def connectionHandler(conn: Connection): Unit =
+    Parser.getCommand(conn.d) match
       case Success(args) =>
         if args.nonEmpty then
           streamToReplicas(args)
