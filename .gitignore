@@ -1,16 +1,32 @@
-debug/
+# macOS
+.DS_Store
+
+# sbt specific
+dist/*
 target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+project/local-plugins.sbt
+.history
+.ensime
+.ensime_cache/
+.sbt-scripted/
+local.sbt
 
-# Custom testing directory
-sample/
+# Bloop
+.bsp
 
-# Editors
-.idea/
+# VS Code
 .vscode/
-.metals/
-.bloop/
-.bsp/  
 
-# Build files
-*.class
-*.jar
+# Metals
+.bloop/
+.metals/
+metals.sbt
+
+# IDEA
+.idea
+.idea_modules
+/.worksheet/
