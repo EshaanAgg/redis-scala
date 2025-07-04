@@ -64,8 +64,8 @@ object Handler:
   val transactionEndingCommands: Set[String] = Set("EXEC", "DISCARD")
 
   private def inTransactionHandler(
-      args: Array[String],
-      conn: Connection
+    args: Array[String],
+    conn: Connection
   ): Try[RESPData] =
     // If the transaction is ending, dispatch the correct handler
     if transactionEndingCommands.contains(args(0).toUpperCase)

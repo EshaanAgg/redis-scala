@@ -49,8 +49,7 @@ object ServerState:
             )
           else println(s"Invalid replicaof format: $v")
 
-        case _ => println(s"Unrecognized key-value pair: $k -> $v")
-    )
+        case _ => println(s"Unrecognized key-value pair: $k -> $v"))
 
     val rdbFileResult = RDBFile.loadFile(s"$dir/$dbFile")
     if rdbFileResult.isDefined then
@@ -86,8 +85,7 @@ object ServerState:
         if v.isEmpty then
           store -= k
           None
-        else Some(v)
-      )
+        else Some(v))
 
   /** Increments the value of the key by 1 if it is an integer. If the key does
     * not exist, it initializes it to 1. Returns an error otherwise.

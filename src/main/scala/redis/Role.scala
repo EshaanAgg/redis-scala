@@ -28,9 +28,9 @@ case class Replica(conn: Connection, var acknowledgedOffset: Long = 0L):
 
 object Role:
   case class Master(
-      replID: String,
-      replOffset: Long,
-      replicas: ListBuffer[Replica]
+    replID: String,
+    replOffset: Long,
+    replicas: ListBuffer[Replica]
   ) extends Role:
     var streamedOffset: Long = 0L
 

@@ -3,9 +3,9 @@ package redis.ds
 import scala.annotation.tailrec
 
 case class Node[T](
-    value: T,
-    var prev: Option[Node[T]] = None,
-    var next: Option[Node[T]] = None
+  value: T,
+  var prev: Option[Node[T]] = None,
+  var next: Option[Node[T]] = None
 ):
   def isHead: Boolean = prev.isEmpty
 
@@ -22,9 +22,9 @@ case class Node[T](
   override def toString: String = s"Node($value)"
 
 case class LinkedList[T](
-    var head: Option[Node[T]] = None,
-    var tail: Option[Node[T]] = None,
-    var length: Int = 0
+  var head: Option[Node[T]] = None,
+  var tail: Option[Node[T]] = None,
+  var length: Int = 0
 ):
   def isEmpty: Boolean = length == 0
 
@@ -137,9 +137,9 @@ case class LinkedList[T](
     */
   @tailrec
   final def apply(
-      a: Node[T],
-      b: Node[T],
-      acc: List[Node[T]] = Nil
+    a: Node[T],
+    b: Node[T],
+    acc: List[Node[T]] = Nil
   ): List[Node[T]] =
     if (a == b) then a +: acc
     else apply(a, b.prev.get, b +: acc)

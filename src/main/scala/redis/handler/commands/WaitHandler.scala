@@ -33,11 +33,11 @@ object WaitHandler extends Handler:
     */
   @tailrec
   private def hander(
-      minReplicaCnt: Int,
-      timeout: Instant,
-      m: Master,
-      lastReplicaCount: Int,
-      calledCount: Int = 0
+    minReplicaCnt: Int,
+    timeout: Instant,
+    m: Master,
+    lastReplicaCount: Int,
+    calledCount: Int = 0
   ): Try[RESPData] =
     // Base case: If no write messages have been issued, then we can assume
     // that all the replicas have acknowledged the same.

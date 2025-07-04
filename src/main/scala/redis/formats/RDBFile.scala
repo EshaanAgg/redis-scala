@@ -65,8 +65,7 @@ object RDBFile:
           d.readNBytes(bufLen)
             .map(Convert.getLENumber(_).toString)
         // Read "len" bytes from the stream as a string
-        else d.readNBytes(len).map(String(_, "UTF-8"))
-      )
+        else d.readNBytes(len).map(String(_, "UTF-8")))
 
   private def readHeaderSection(d: Decoder): Option[String] =
     val supportedHeader = "REDIS0011"
@@ -114,8 +113,7 @@ object RDBFile:
               key -> StoreVal(
                 value.data,
                 Some(Instant.ofEpochMilli(exp))
-              )
-            )
+              ))
           })
       }
 
@@ -128,8 +126,7 @@ object RDBFile:
               key -> StoreVal(
                 value.data,
                 Some(Instant.ofEpochSecond(exp))
-              )
-            )
+              ))
           })
       }
 
@@ -245,8 +242,7 @@ object RDBFile:
       .getStream(filePath)
       .flatMap(s =>
         println(s"[RDB File] Loading RDB file from '$filePath'")
-        process(Decoder(s))
-      )
+        process(Decoder(s)))
 
   def loadBytes(bytes: Array[Byte]): Option[String] =
     process(Decoder(bytes))

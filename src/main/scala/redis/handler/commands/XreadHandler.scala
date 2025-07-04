@@ -19,13 +19,13 @@ import scala.util.Try
   * @param block
   */
 case class XreadCommand(
-    streams: List[(String, EntryID)],
-    block: Option[Int]
+  streams: List[(String, EntryID)],
+  block: Option[Int]
 )
 
 object XreadCommand:
   private def parseBlockOption(
-      args: Array[String]
+    args: Array[String]
   ): Try[(Array[String], Option[Int])] =
     if !args.isEmpty && args.head.toUpperCase == "BLOCK"
     then
@@ -35,7 +35,7 @@ object XreadCommand:
     else Success(args -> None)
 
   private def parseStreams(
-      args: Array[String]
+    args: Array[String]
   ): Try[List[(String, Option[EntryID])]] =
     if args.length < 3 || args(0).toUpperCase != "STREAMS" then
       Failure(
@@ -100,10 +100,8 @@ object XreadHandler extends Handler:
               RESPData.Array(
                 RESPData.BulkString(streamName),
                 RESPData.Array(entries.map(_.getResp))
-              )
-            )
-          )
-      )
+              ))
+          ))
 
   /** Retrieves entries from the specified stream that have an ID greater than
     * the provided entryID. If the stream does not exist, returns an empty list.
@@ -111,19 +109,18 @@ object XreadHandler extends Handler:
     * @param entryID
     */
   private def getStreamEntries(
-      streamName: String,
-      entryID: EntryID
+    streamName: String,
+    entryID: EntryID
   ): List[Entry] =
     StreamStore.getStream(streamName) match
       case Some(entries) => entries.filter(_.id > entryID)
       case None          => List.empty[Entry]
 
   private def getStreamResult(
-      streams: List[(String, EntryID)]
+    streams: List[(String, EntryID)]
   ): List[StreamResult] =
     streams.map((streamName, entryID) =>
-      (streamName, getStreamEntries(streamName, entryID))
-    )
+      (streamName, getStreamEntries(streamName, entryID)))
 
   /** Checks if there are any new entries in the stream compared to the last
     * saved entry ID.
@@ -132,8 +129,8 @@ object XreadHandler extends Handler:
     * @return
     */
   private def hasNewEntry(
-      streamName: String,
-      lastSavedEntryID: Option[EntryID]
+    streamName: String,
+    lastSavedEntryID: Option[EntryID]
   ): Boolean =
     StreamStore.lastEntry(streamName) match
       case Some(lastEntry) =>
@@ -145,14 +142,13 @@ object XreadHandler extends Handler:
 
   @tailrec
   private def getNewStreamEntries(
-      streamNames: List[String],
-      lastSavedEntries: List[Option[EntryID]]
+    streamNames: List[String],
+    lastSavedEntries: List[Option[EntryID]]
   ): List[StreamResult] =
     val allHaveNewEntries = streamNames
       .zip(lastSavedEntries)
       .forall((streamName, lastSavedEntry) =>
-        hasNewEntry(streamName, lastSavedEntry)
-      )
+        hasNewEntry(streamName, lastSavedEntry))
     if allHaveNewEntries then
       // If there are new entries, get them
       val streams =
@@ -164,7 +160,7 @@ object XreadHandler extends Handler:
       getNewStreamEntries(streamNames, lastSavedEntries)
 
   private def getStreamResultWithBlocking(
-      args: XreadCommand
+    args: XreadCommand
   ): List[StreamResult] =
     args.block match
       case None    => getStreamResult(args.streams)

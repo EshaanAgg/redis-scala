@@ -15,8 +15,8 @@ class DecoderException(message: String, cause: Throwable = null)
     extends Exception(message, cause)
 
 case class Decoder(
-    rawIn: InputStream,
-    readBytes: ArrayBuffer[Byte] = ArrayBuffer.empty
+  rawIn: InputStream,
+  readBytes: ArrayBuffer[Byte] = ArrayBuffer.empty
 ):
   private val in: BufferedInputStream =
     rawIn match

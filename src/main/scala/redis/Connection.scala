@@ -16,10 +16,10 @@ import scala.util.Success
 import scala.util.Try
 
 case class Connection(
-    host: String,
-    port: Int,
-    conn: Socket,
-    isMasterConnection: Boolean
+  host: String,
+  port: Int,
+  conn: Socket,
+  isMasterConnection: Boolean
 ):
   val d: Decoder = Decoder(
     conn.getInputStream
@@ -72,7 +72,7 @@ case class Connection(
     * it returns a Failure with the error.
     */
   def sendAndTryResponse(
-      toSend: RESPData
+    toSend: RESPData
   ): Try[RESPData] =
     sendBytes(toSend.getBytes)
     RESPData(d)
@@ -117,8 +117,7 @@ case class Connection(
       catch
         case e: Exception =>
           println(s"${logPrefix} Unexpected error: ${e.getMessage}")
-          disconnect()
-    ).start()
+          disconnect()).start()
 
   /** Updates the acknowledged offset for the connection. This is only done for
     * the master connection, and is used to track the last acknowledged offset
@@ -149,9 +148,9 @@ object Connection:
     )
 
   def apply(
-      host: String,
-      port: Int,
-      isMasterConnection: Boolean = false
+    host: String,
+    port: Int,
+    isMasterConnection: Boolean = false
   ): Connection =
     val socket = new Socket(host, port)
     Connection(host, port, socket, isMasterConnection)

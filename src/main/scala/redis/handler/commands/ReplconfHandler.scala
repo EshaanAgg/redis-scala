@@ -36,9 +36,9 @@ object ReplconfHandler extends HandlerWithConnection:
       )
 
   private def masterHander(
-      args: Array[String],
-      m: Master,
-      conn: Connection
+    args: Array[String],
+    m: Master,
+    conn: Connection
   ): Try[RESPData] =
     if args.length < 3
     then
