@@ -28,6 +28,7 @@ trait PostMessageHandler:
 
 object Handler:
   val writeCommands: Set[String] = Set("SET", "INCR", "XADD", "LPUSH", "RPUSH")
+  val blockingCommands: Set[String] = Set("XREAD", "WAIT")
 
   val handlerMap: Map[String, Handler] = Map(
     "ping" -> cmd.PingHandler,
@@ -89,6 +90,9 @@ object Handler:
       s"${conn.logPrefix} [$timeSuff ms] ${args.mkString("(", ", ", ")")}"
     )
 
+    // Lock the state before processing the command
+    ServerState.mtx.lock()
+
     val response =
       if conn.inTransaction
       then inTransactionHandler(args, conn)
@@ -99,6 +103,11 @@ object Handler:
           case x if handlerWithConnectionMap.contains(x.toLowerCase) =>
             handlerWithConnectionMap(x.toLowerCase).handle(args, conn)
           case _ => cmd.UnknownHandler.handle(args)
+
+    // If the command is not a blocking command, or if there was any error in the
+    // handler, then we should manually release the lock
+    if !blockingCommands.contains(args(0).toUpperCase) || response.isFailure
+    then ServerState.mtx.unlock()
 
     conn.updateAcknowledgedOffset(args)
 

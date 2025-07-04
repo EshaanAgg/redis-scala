@@ -12,8 +12,10 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
+// BLOCKING Command -> Must release the mutex on ServerState manually
+// if the command was successful
 object WaitHandler extends Handler:
-  val getACKMessageSize = 37
+  private val getACKMessageSize = 37
 
   /** Recursive handler to wait for a minimum number of replicas to acknowledge
     * the streamed offset.
@@ -22,6 +24,7 @@ object WaitHandler extends Handler:
     * @param timeout
     *   The time until which to wait for the replicas
     * @param m
+    *   The master instance associated with the server
     * @param lastReplicaCount
     *   The last known count of replicas that have acknowledged the streamed
     *   offset
@@ -32,7 +35,7 @@ object WaitHandler extends Handler:
     *   the timeout is reached or an issue occurs
     */
   @tailrec
-  private def hander(
+  private def handler(
     minReplicaCnt: Int,
     timeout: Instant,
     m: Master,
@@ -51,7 +54,7 @@ object WaitHandler extends Handler:
     else
       // Check the current replica count by sending the "REPLCONF GETACK" command
       // and then waiting for the responses
-      m.replicas.foreach(_.sendGetAckRequest)
+      m.replicas.foreach(_.sendGetAckRequest())
       Thread.sleep(100)
       val newReplicaCount =
         m.replicas.count(_.acknowledgedOffset >= m.streamedOffset)
@@ -65,7 +68,7 @@ object WaitHandler extends Handler:
         Success(RESPData.Integer(newReplicaCount))
       else
         Thread.sleep(100) // Wait a bit before checking again
-        hander(minReplicaCnt, timeout, m, newReplicaCount, calledCount + 1)
+        handler(minReplicaCnt, timeout, m, newReplicaCount, calledCount + 1)
 
   def handle(args: Array[String]): Try[RESPData] =
     ServerState.role match
@@ -82,7 +85,8 @@ object WaitHandler extends Handler:
             val replicaCnt = args(1).toInt
             val timeout = Instant.now().plusMillis(args(2).toInt)
             println(s"[WAIT] Master Offset: ${m.streamedOffset}")
-            hander(
+            ServerState.mtx.unlock()
+            handler(
               replicaCnt,
               timeout,
               m,

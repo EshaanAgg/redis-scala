@@ -2,6 +2,7 @@ package redis.handler.commands
 
 import redis.Entry
 import redis.EntryID
+import redis.ServerState
 import redis.StreamStore
 import redis.formats.RESPData
 import redis.handler.Handler
@@ -12,7 +13,7 @@ import scala.util.Success
 import scala.util.Try
 
 /** XREAD command to read entries from one or more streams. The EntryID for a
-  * stream would be None if tehe $ ID is used to get only the new entries. The
+  * stream would be None if the $ ID is used to get only the new entries. The
   * block parameter is used to specify the timeout for blocking reads.
   *
   * @param streams
@@ -83,6 +84,8 @@ object XreadCommand:
       }
     }
 
+// BLOCKING Command -> Must release the mutex on ServerState manually
+// if the command was successful
 object XreadHandler extends Handler:
   private type StreamResult = (String, List[Entry])
 
@@ -163,13 +166,18 @@ object XreadHandler extends Handler:
     args: XreadCommand
   ): List[StreamResult] =
     args.block match
-      case None    => getStreamResult(args.streams)
+      case None =>
+        val res = getStreamResult(args.streams)
+        ServerState.mtx.unlock()
+        res
       case Some(0) =>
         // Get the last saved entry IDs for each stream and then
         // fetch only the new entries
         val streamNames = args.streams.map(_._1)
         val lastSavedEntryIDs = streamNames.map(StreamStore.lastEntry)
+        ServerState.mtx.unlock()
         getNewStreamEntries(streamNames, lastSavedEntryIDs)
       case Some(timeout) =>
+        ServerState.mtx.unlock()
         Thread.sleep(timeout)
         getStreamResult(args.streams)

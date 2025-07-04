@@ -23,7 +23,7 @@ case class Replica(conn: Connection, var acknowledgedOffset: Long = 0L):
   def sendBytes(bytes: Array[Byte]): Unit =
     conn.sendBytes(bytes)
 
-  def sendGetAckRequest: Unit =
+  def sendGetAckRequest(): Unit =
     sendBytes(getAckMessage.getBytes)
 
 object Role:

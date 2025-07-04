@@ -5,6 +5,7 @@ import redis.formats.RDBFile
 
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.locks.ReentrantLock
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
@@ -18,6 +19,10 @@ case class StoreVal(data: String, exp: Option[Instant]):
 object ServerState:
   private val store: TrieMap[String, StoreVal] = new TrieMap()
   private val listStore: TrieMap[String, LinkedList[String]] = new TrieMap()
+
+  // Mutex for synchronization of the server state between different threads
+  // so that the commands are processed in order.
+  val mtx = new ReentrantLock()
 
   var dir: String = "./sample"
   var dbFile: String = "dump.rdb"
