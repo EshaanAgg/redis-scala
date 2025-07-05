@@ -10,14 +10,15 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-case class Args(
+case class PopArgs(
   key: String,
   cnt: Option[Int]
 )
 
-def validateLPopArgs(
+def validatePopArgs(
   args: Array[String],
-  opName: String): Either[String, Args] =
+  opName: String
+): Either[String, PopArgs] =
   if args.length != 2 && args.length != 3
   then
     Left(
@@ -25,7 +26,7 @@ def validateLPopArgs(
     )
   else
     Right(
-      Args(
+      PopArgs(
         args(1),
         if args.length == 3 then Some(args(2).toInt) else None
       )
@@ -37,8 +38,9 @@ object ListPopHandler:
   private def getResult(
     cmdName: String,
     fn: mapperFn,
-    args: Array[String]): Try[RESPData] =
-    validateLPopArgs(args, cmdName) match
+    args: Array[String]
+  ): Try[RESPData] =
+    validatePopArgs(args, cmdName) match
       case Left(error) => Failure(IllegalArgumentException(error))
       case Right(args) =>
         val list = ServerState.getOrCreateList(args.key)

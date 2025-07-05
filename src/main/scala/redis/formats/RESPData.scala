@@ -110,7 +110,10 @@ object RESPData:
                     DecoderException(
                       s"Length of read bytes is ${s.length} while expected it to be $l"
                     )
-                  ))))
+                  )
+              )
+          )
+        )
 
     def apply(str: String): BulkString = BulkString(Some(str))
 
@@ -141,7 +144,10 @@ object RESPData:
                       DecoderException(
                         s"Length of elements parsed is ${arr.length} while expected it to be $l"
                       )
-                    ))))
+                    )
+                )
+          )
+        )
 
     def apply(arr: RESPData*): Array = Array(Some(arr.toList))
     def apply(arr: List[RESPData]): Array = Array(Some(arr))
@@ -162,7 +168,8 @@ object RESPData:
                   s"Unexpected value '$x' for Boolean type"
                 )
               )
-          })
+          }
+        )
 
   /** Reads the RDB file content from the given decoder. The format for the RDB
     * file bytes is: $<length>\r\n<bytes>

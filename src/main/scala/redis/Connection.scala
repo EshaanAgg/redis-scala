@@ -117,7 +117,8 @@ case class Connection(
       catch
         case e: Exception =>
           println(s"$logPrefix Unexpected error: ${e.getMessage}")
-          disconnect()).start()
+          disconnect()
+    ).start()
 
   /** Updates the acknowledged offset for the connection. This is only done for
     * the master connection, and is used to track the last acknowledged offset

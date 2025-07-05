@@ -103,8 +103,10 @@ object XreadHandler extends Handler:
               RESPData.Array(
                 RESPData.BulkString(streamName),
                 RESPData.Array(entries.map(_.getResp))
-              ))
-          ))
+              )
+            )
+          )
+      )
 
   /** Retrieves entries from the specified stream that have an ID greater than
     * the provided entryID. If the stream does not exist, returns an empty list.
@@ -123,7 +125,8 @@ object XreadHandler extends Handler:
     streams: List[(String, EntryID)]
   ): List[StreamResult] =
     streams.map((streamName, entryID) =>
-      (streamName, getStreamEntries(streamName, entryID)))
+      (streamName, getStreamEntries(streamName, entryID))
+    )
 
   /** Checks if there are any new entries in the stream compared to the last
     * saved entry ID.
@@ -151,7 +154,8 @@ object XreadHandler extends Handler:
     val allHaveNewEntries = streamNames
       .zip(lastSavedEntries)
       .forall((streamName, lastSavedEntry) =>
-        hasNewEntry(streamName, lastSavedEntry))
+        hasNewEntry(streamName, lastSavedEntry)
+      )
     if allHaveNewEntries then
       // If there are new entries, get them
       val streams =

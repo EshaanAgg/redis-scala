@@ -27,6 +27,7 @@ case class LinkedList[T](
   var length: Int = 0
 ):
   def isEmpty: Boolean = length == 0
+  def nonEmpty: Boolean = !isEmpty
 
   def popHead: T =
     assert(!isEmpty, "popHead called on empty list")

@@ -9,7 +9,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-def validateLPushArgs(args: Array[String], opName: String): Option[String] =
+def validatePushArgs(args: Array[String], opName: String): Option[String] =
   if args.length < 3
   then
     Some(
@@ -23,8 +23,9 @@ object ListPushHandler:
   private def getResult(
     cmdName: String,
     fn: mapperFn,
-    args: Array[String]): Try[RESPData] =
-    validateLPushArgs(args, cmdName) match
+    args: Array[String]
+  ): Try[RESPData] =
+    validatePushArgs(args, cmdName) match
       case Some(error) => Failure(IllegalArgumentException(error))
       case None =>
         val list = ServerState.getOrCreateList(args(1))

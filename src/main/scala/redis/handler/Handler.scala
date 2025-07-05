@@ -27,7 +27,8 @@ trait PostMessageHandler:
 
 object Handler:
   val writeCommands: Set[String] = Set("SET", "INCR", "XADD", "LPUSH", "RPUSH")
-  private val blockingCommands: Set[String] = Set("XREAD", "WAIT")
+  private val blockingCommands: Set[String] =
+    Set("XREAD", "WAIT", "BLPOP", "BRPOP")
 
   val handlerMap: Map[String, Handler] = Map(
     "ping" -> cmd.PingHandler,
@@ -49,7 +50,9 @@ object Handler:
     "llen" -> cmd.LLenHandler,
     "lrange" -> cmd.LRangeHandler,
     "lpop" -> cmd.ListPopHandler.LPop,
-    "rpop" -> cmd.ListPopHandler.RPop
+    "rpop" -> cmd.ListPopHandler.RPop,
+    "blpop" -> cmd.ListBlockPopHandler.LPop,
+    "brpop" -> cmd.ListBlockPopHandler.RPop
   )
 
   val handlerWithConnectionMap: Map[String, HandlerWithConnection] = Map(
